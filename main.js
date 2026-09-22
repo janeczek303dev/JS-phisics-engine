@@ -221,7 +221,7 @@ function update(dt) {
     yveldisplay.textContent = "box yvel" + box1.yvel;
 }
 
-//renders
+//renderss
 
 function draw() {
     // Drawing goes here
