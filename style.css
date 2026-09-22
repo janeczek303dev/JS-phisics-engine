@@ -1,0 +1,58 @@
+* {
+    box-sizing: border-box;
+}
+/* ts written by chat i hate css with my whole soul a*/
+
+/*aaaaaa*/
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #181818;
+    font-family: Arial, sans-serif;
+}
+
+.main {
+    width: 100vw;
+    height: 100vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+canvas {
+    width: 1000px;
+    height: 700px;
+
+    background: white;
+    border: 2px solid black;
+}
+
+body > p {
+    position: absolute;
+    z-index: 10;
+
+    left: 15px;
+
+    margin: 0;
+
+    color: #00ff88;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+#xacc {
+    top: 15px;
+}
+
+#yacc {
+    top: 35px;
+}
+
+#xvel {
+    top: 55px;
+}
+
+#yvel {
+    top: 75px;
+}
