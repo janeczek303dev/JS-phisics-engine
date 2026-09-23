@@ -76,7 +76,60 @@ let player = {
     xvel: 0,
     yvel: 0,
     mass: 1,
-    invmass: 1/player.mass,
+    invmass: 1,
+    isGrounded: true,
+    rotation: 0,
+    aacc: 0,
+    avel: 0,
+    momentI: 15,
+    torque: 0,
+    pivotx: 0,
+    pivoty: 0
+};
+
+let box2 = {
+    x: 0,
+    y: 0,
+    tlcx: 0,
+    tlcy: 0,
+    trcx: 0,
+    trcy: 0,
+    blcx: 0,
+    blcy: 0,
+    brcx: 0,
+    brcy: 0,
+    tltrx: 0,
+    tltry: 0,
+    trbrx: 0,
+    trbry: 0,
+    brblx: 0,
+    brbly: 0,
+    bltlx: 0,
+    bltly: 0,
+    axis1maxProj: 0,
+    axis1minProj: 0,
+    axis2maxProj: 0,
+    axis2minProj: 0,
+    axis3maxProj: 0,
+    axis3minProj: 0,
+    axis4maxProj: 0,
+    axis4minProj: 0,
+    axis1x: 0,
+    axis1y: 0,
+    axis2x: 0,
+    axis2y: 0,
+    axis3x: 0,
+    axis3y: 0,
+    axis4x: 0,
+    axis4y: 0,
+    objectH: 25,
+    objectW: 25,
+    xacc: 0,
+    yacc: 0,
+    xvel: 0,
+    yvel: 0,
+    mass: 1,
+    invmass: 1,
     isGrounded: true,
     rotation: 0,
     aacc: 0,
@@ -116,7 +169,7 @@ let platform1 = {
 }
 
 let phisicsObjects = [];
-phisicsObjects.push(box1);
+phisicsObjects.push(box2);
 
 const xadisplay = document.getElementById("xacc");
 const yadisplay = document.getElementById("yacc");
@@ -148,6 +201,8 @@ document.addEventListener("keyup", function(event) {
 
 function start() {
     requestAnimationFrame(gameLoop);
+    player.invmass = 1/player.mass;
+    box2.invmass = 1/box2.invmass;
 }
 
 
@@ -187,35 +242,44 @@ function gameLoop(currentTime) {
 
 
 function fixedUpdate(dt) {
-    // Physics goes here
+    // Physics goes her
 
-    // for(let object of phisicsObjects){
-    //      reverseMass(object);
-    //     getPivot(object);
-    //     resetAcceleration(object);
-    //     resetRotationalAcceleration(object);
-    //     gravity(object,gravity_values);
-    //     calculateRotationalAcceleration(object);
-    //     calculateRotationalVelocity(object, dt);
-    //     calculateVelocity(object,dt);
-    //     friction(object,groundFriction,airResistacce,dt);
-        
-    //     doRotation(object,dt);
-    //     moveObject(object,dt);
+    for(let object of phisicsObjects){
+        getPivot(object);
+        getRotatedCorners(object);
+        getEdges(object);
+        getAxes(object);
 
-    //     avoidSmallNums(object);
 
-    //     checkWall(object);
-    //     checkGround(object);
-    // }
+        resetAcceleration(object);
+        resetRotationalAcceleration(object);
+        gravity(object,gravity_values);
+        calculateRotationalAcceleration(object);
+        calculateRotationalVelocity(object, dt);
+        calculateVelocity(object,dt);
+        friction(object,groundFriction,airResistacce,dt);
+
+        doRotation(object,dt);
+        moveObject(object,dt);
+
+        resolveCollision(object,player);
+        for(otherObj of phisicsObjects){
+            resolveCollision(object, otherObj);
+        }
+
+        avoidSmallNums(object);
+        checkWall(object);
+        checkGround(object);
+    }
 
 
 
 
     //console.log("aaa")
-    reverseMass(player);
     getRotatedCorners(player);
     getPivot(player);
+    getEdges(player);
+    getAxes(player);
 
     resetAcceleration(player);
     resetRotationalAcceleration(player);
@@ -242,6 +306,8 @@ function fixedUpdate(dt) {
     doRotation(player,dt);
     moveObject(player,dt);
 
+    resolveCollision(player, box2);
+
     avoidSmallNums(player);
 
     checkGround(player);
@@ -266,11 +332,11 @@ function draw() {
 
 
     drawPlayer(player);
-    //drawPlayer(box1);
+    drawPlayer(box2);
     debugOrigin();
     debugOriginPlayer(player);
     debugRotatingPoints(player);
-    debugRotatingPoints(box1);
+    debugRotatingPoints(box2);
     
     
 }
@@ -302,7 +368,7 @@ function moveObject(object,dt){
 }
 
 function gravity(object, gvalue){
-    object.yacc += gvalue;
+    addForceSimulated(object, 0, gvalue, object.pivotx, object.pivoty);
 }
 
 function addForce(object, dirx, diry){
@@ -707,8 +773,40 @@ function SAT(objectA, objectB){
 
 }
 
-function resolveCollision(){
-    //WORK IN PROGRESS HERE
+function resolveCollision(objectA, objectB){
+    getAxes(objectA);
+    getAxes(objectB);
+
+    let collisionData = SAT(objectA,objectB);
+    if(collisionData == false){
+        return 0;
+    }
+    else
+    {
+        let slop = 0.1;
+
+        let separationVector = {
+            x: collisionData.normalx * Math.max(collisionData.penetration - slop, 0),
+            y: collisionData.normaly * Math.max(collisionData.penetration - slop, 0)
+        };
+        let totalInverseMass = objectA.invmass + objectB.invmass;
+        let correctionA = {
+            x: separationVector.x * (objectA.invmass/totalInverseMass),
+            y: separationVector.y * (objectA.invmass/totalInverseMass)
+        };
+        let correctionB =  {
+            x: separationVector.x * (objectB.invmass/totalInverseMass),
+            y: separationVector.y * (objectB.invmass/totalInverseMass)
+        };
+
+        objectA.x -= correctionA.x;
+        objectA.y -= correctionA.y;
+
+        objectB.x += correctionB.x;
+        objectB.y += correctionB.y;
+
+    }
+   
 }
 
 
