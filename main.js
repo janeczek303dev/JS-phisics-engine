@@ -37,6 +37,38 @@ let airResistacce = 2;
 let player = {
     x: 0,
     y: 0,
+    tlcx: 0,
+    tlcy: 0,
+    trcx: 0,
+    trcy: 0,
+    blcx: 0,
+    blcy: 0,
+    brcx: 0,
+    brcy: 0,
+    tltrx: 0,
+    tltry: 0,
+    trbrx: 0,
+    trbry: 0,
+    brblx: 0,
+    brbly: 0,
+    bltlx: 0,
+    bltly: 0,
+    axis1maxProj: 0,
+    axis1minProj: 0,
+    axis2maxProj: 0,
+    axis2minProj: 0,
+    axis3maxProj: 0,
+    axis3minProj: 0,
+    axis4maxProj: 0,
+    axis4minProj: 0,
+    axis1x: 0,
+    axis1y: 0,
+    axis2x: 0,
+    axis2y: 0,
+    axis3x: 0,
+    axis3y: 0,
+    axis4x: 0,
+    axis4y: 0,
     objectH: 25,
     objectW: 25,
     xacc: 0,
@@ -44,6 +76,7 @@ let player = {
     xvel: 0,
     yvel: 0,
     mass: 1,
+    invmass: 1/player.mass,
     isGrounded: true,
     rotation: 0,
     aacc: 0,
@@ -156,29 +189,32 @@ function gameLoop(currentTime) {
 function fixedUpdate(dt) {
     // Physics goes here
 
-    for(let object of phisicsObjects){
-        getPivot(object);
-        resetAcceleration(object);
-        resetRotationalAcceleration(object);
-        gravity(object,gravity_values);
-        calculateRotationalAcceleration(object);
-        calculateRotationalVelocity(object, dt);
-        calculateVelocity(object,dt);
-        friction(object,groundFriction,airResistacce,dt);
+    // for(let object of phisicsObjects){
+    //      reverseMass(object);
+    //     getPivot(object);
+    //     resetAcceleration(object);
+    //     resetRotationalAcceleration(object);
+    //     gravity(object,gravity_values);
+    //     calculateRotationalAcceleration(object);
+    //     calculateRotationalVelocity(object, dt);
+    //     calculateVelocity(object,dt);
+    //     friction(object,groundFriction,airResistacce,dt);
         
-        doRotation(object,dt);
-        moveObject(object,dt);
+    //     doRotation(object,dt);
+    //     moveObject(object,dt);
 
-        avoidSmallNums(object);
+    //     avoidSmallNums(object);
 
-        checkWall(object);
-        checkGround(object);
-    }
+    //     checkWall(object);
+    //     checkGround(object);
+    // }
 
 
 
 
     //console.log("aaa")
+    reverseMass(player);
+    getRotatedCorners(player);
     getPivot(player);
 
     resetAcceleration(player);
@@ -201,7 +237,7 @@ function fixedUpdate(dt) {
     //doRotation(player, 45);
     //player.rotation += Math.PI * dt;
 
-    checkCollision(player,platform1);
+    //checkCollision(player,platform1);
     
     doRotation(player,dt);
     moveObject(player,dt);
@@ -230,9 +266,11 @@ function draw() {
 
 
     drawPlayer(player);
-    drawPlayer(box1);
+    //drawPlayer(box1);
     debugOrigin();
     debugOriginPlayer(player);
+    debugRotatingPoints(player);
+    debugRotatingPoints(box1);
     
     
 }
@@ -309,6 +347,7 @@ function jump(object, request){
         jumpReq = false;
     }
 }
+
 
 function checkGround(object){
     if (object.y  >= floor) {
@@ -400,9 +439,10 @@ function resetRotationalAcceleration(object){
 function doRotation(object, dt){
     object.rotation += object.avel * dt;
 }
-//Collisions
 
-function checkCollision(objectA, objectB){
+//Collisions (sat algorythm)
+
+function checkCollision(objectA, objectB){//obsolete
     var a_left = objectA.x;
     var a_right = objectA.x + objectA.objectW;
     var a_top = objectA.y;
@@ -422,10 +462,256 @@ function checkCollision(objectA, objectB){
 }
 
 function getRotatedCorners(object){
-    console.log("czarnuszzek");
-    //smthsmth
+    getPivot(object);
+
+    let corners = [];
+
+    //local corners
+    let tl = {
+        x: -object.objectW / 2,
+        y: -object.objectH / 2
+    };
+    let tr = {
+        x: object.objectW / 2,
+        y: -object.objectH / 2
+    };
+    let bl = {
+        x: -object.objectW / 2,
+        y: object.objectH / 2
+    };
+    let br = {
+        x: object.objectW / 2,
+        y: object.objectH / 2
+    };
+
+    corners.push(tl, tr, br, bl);
+
+    for(let corner of corners){
+        let ox = corner.x;
+        let oy = corner.y;
+        corner.x = ox * Math.cos(object.rotation) - oy * Math.sin(object.rotation);
+        corner.y = ox * Math.sin(object.rotation) + oy * Math.cos(object.rotation);
+    }
+
+    for(let corner of corners){
+        corner.x = object.pivotx + corner.x;
+        corner.y = object.pivoty + corner.y;
+    }
+
+    object.tlcx = tl.x;
+    object.tlcy = tl.y;
+
+    object.trcx = tr.x;
+    object.trcy = tr.y;
+
+    object.blcx = bl.x;
+    object.blcy = bl.y;
+
+    object.brcx = br.x;
+    object.brcy = br.y;
+
+    
     
 }
+
+function getEdges(object){
+    object.tltrx = object.trcx - object.tlcx;
+    object.tltry = object.trcy - object.tlcy;
+
+    object.trbrx = object.brcx - object.trcx;
+    object.trbry = object.brcy - object.trcy;
+
+    object.brblx = object.blcx - object.brcx;
+    object.brbly = object.blcy - object.brcy;
+
+    object.bltlx = object.tlcx - object.blcx;
+    object.bltly = object.tlcy - object.blcy;
+}
+
+function getAxes(object){
+    let axes = [];
+
+    let axistltr = {
+        x: -object.tltry,
+        y: object.tltrx
+    };
+    let axistrbr = {
+        x: -object.trbry,
+        y: object.trbrx
+    };
+
+    let axisbrbl = {
+        x: -object.brbly,
+        y: object.brblx
+    };
+    let axisbltl = {
+        x: -object.bltly,
+        y: object.bltlx
+    };
+
+    axes.push(axistltr, axistrbr, axisbrbl, axisbltl);
+
+    for(let axis of axes){
+        var lenght = Math.sqrt(Math.pow(axis.x, 2) + Math.pow(axis.y, 2));
+        axis.x /= lenght;
+        axis.y /= lenght;
+    }
+
+    object.axis1x = axistltr.x;
+    object.axis1y = axistltr.y;
+
+    object.axis2x = axistrbr.x;
+    object.axis2y = axistrbr.y;
+
+    object.axis3x = axisbrbl.x;
+    object.axis3y = axisbrbl.y;
+
+    object.axis4x = axisbltl.x;
+    object.axis4y = axisbltl.y;
+
+}
+
+function projection(object, axisX, axisY){
+   
+
+    let corners = [];
+
+    let tl = {
+        x: object.tlcx,
+        y: object.tlcy
+    };
+    let tr = {
+        x: object.trcx,
+        y: object.trcy
+    };
+    let bl = {
+        x: object.blcx,
+        y: object.blcy
+    };
+    let br = {
+        x: object.brcx,
+        y: object.brcy
+    };
+
+    corners.push(tl, tr, br, bl);
+
+    let min = 0;
+    let max = 0;
+
+    var firstProj = true;
+    for(let corner of corners){
+        var projection = (corner.x * axisX) + (corner.y * axisY)
+        if(firstProj){
+            min = projection;
+            max = projection;
+            firstProj = false;
+        }
+        else{
+            if(projection < min) {min = projection;}
+            if(projection > max) {max = projection;}
+        }
+
+    }
+    let returner = {
+        min2: min,
+        max2: max
+    };
+
+    return returner;
+
+}
+
+function SAT(objectA, objectB){
+    let axesA = [];
+    let axesB = [];
+    let allAxes = [];
+
+    let axis1A = { x: objectA.axis1x, y: objectA.axis1y };
+    let axis2A = { x: objectA.axis2x, y: objectA.axis2y };
+    let axis3A = { x: objectA.axis3x, y: objectA.axis3y };
+    let axis4A = { x: objectA.axis4x, y: objectA.axis4y };
+
+    let axis1B = { x: objectB.axis1x, y: objectB.axis1y };
+    let axis2B = { x: objectB.axis2x, y: objectB.axis2y };
+    let axis3B = { x: objectB.axis3x, y: objectB.axis3y };
+    let axis4B = { x: objectB.axis4x, y: objectB.axis4y };
+
+    axesA.push(axis1A, axis2A, axis3A, axis4A);
+    axesB.push(axis1B, axis2B, axis3B, axis4B);
+    allAxes.push(axis1A, axis2A, axis3A, axis4A, axis1B, axis2B, axis3B, axis4B);
+
+
+    for(let axisA of axesA){
+        let aMin = projection(objectA, axisA.x, axisA.y).min2;
+        let aMax = projection(objectA, axisA.x, axisA.y).max2;
+        let bMin = projection(objectB, axisA.x, axisA.y).min2;
+        let bMax = projection(objectB, axisA.x, axisA.y).max2;
+
+        if(aMax < bMin || bMax < aMin){
+            return false;
+        }
+    } 
+    for(let axisB of axesB){
+        let aMax = projection(objectA, axisB.x, axisB.y).max2;
+        let bMin = projection(objectB, axisB.x, axisB.y).min2;
+        let aMin = projection(objectA, axisB.x, axisB.y).min2;
+        let bMax = projection(objectB, axisB.x, axisB.y).max2;
+
+        if(aMax < bMin || bMax < aMin){
+            return false;
+        }
+    }
+
+
+    let smallestOverlap = Infinity;
+    let minimumAxisX;
+    let minimumAxisY;
+
+    for(let axis of allAxes){
+        let aMin = projection(objectA, axis.x, axis.y).min2;
+        let aMax = projection(objectA, axis.x, axis.y).max2;
+        let bMin = projection(objectB, axis.x, axis.y).min2;
+        let bMax = projection(objectB, axis.x, axis.y).max2;
+
+        let overlap1 = aMax - bMin;
+        let overlap2 = bMax - aMin;
+        let overlap = Math.min(overlap1,overlap2);
+        if(overlap < smallestOverlap){
+            smallestOverlap = overlap;
+            minimumAxisX = axis.x;
+            minimumAxisY = axis.y;
+        }
+    }
+
+    getPivot(objectA);
+    getPivot(objectB);
+
+    let dirx = objectB.pivotx - objectA.pivotx;
+    let diry = objectB.pivoty - objectA.pivoty;
+
+    let dotProduct = (dirx * minimumAxisX) + (diry * minimumAxisY);
+
+    if(dotProduct < 0){
+        minimumAxisX = -minimumAxisX;
+        minimumAxisY = -minimumAxisY;
+    }
+
+    let collisionInfo = {
+        isColliding: true,
+        penetration: smallestOverlap,
+        normalx: minimumAxisX,
+        normaly: minimumAxisY
+    }
+
+    return collisionInfo;
+
+}
+
+function resolveCollision(){
+    //WORK IN PROGRESS HERE
+}
+
+
 
 
 
@@ -486,6 +772,34 @@ function debugOriginPlayer(player) {
     ctx.stroke();
 
     
+    ctx.restore();
+}
+
+function debugRotatingPoints(object){
+
+    getRotatedCorners(object);
+
+    const corners = [
+        { x: object.tlcx, y: object.tlcy },
+        { x: object.trcx, y: object.trcy },
+        { x: object.blcx, y: object.blcy },
+        { x: object.brcx, y: object.brcy }
+    ];
+
+    ctx.save();
+    ctx.strokeStyle = "orange";
+    ctx.fillStyle = "orange";
+    ctx.lineWidth = 1.5;
+
+    for (const point of corners) {
+        ctx.beginPath();
+        ctx.moveTo(point.x - 5, point.y - 5);
+        ctx.lineTo(point.x + 5, point.y + 5);
+        ctx.moveTo(point.x - 5, point.y + 5);
+        ctx.lineTo(point.x + 5, point.y - 5);
+        ctx.stroke();
+    }
+
     ctx.restore();
 }
 
