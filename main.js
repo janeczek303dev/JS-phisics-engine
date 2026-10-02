@@ -773,39 +773,247 @@ function SAT(objectA, objectB){
 
 }
 
+function returnEdges(object){
+    let edges = [];
+
+    let edge1 = {
+        p1: { x: object.tlcx, y: object.tlcy },
+        p2: { x: object.trcx, y: object.trcy },
+        x: object.tltrx,
+        y: object.tltry
+    };
+    let edge2 = {
+        p1: { x: object.trcx, y: object.trcy },
+        p2: { x: object.brcx, y: object.brcy },
+        x: object.trbrx,
+        y: object.trbry
+    };
+    let edge3 = {
+        p1: { x: object.brcx, y: object.brcy },
+        p2: { x: object.blcx, y: object.blcy },
+        x: object.brblx,
+        y: object.brbly
+    };
+    let edge4 = {
+        p1: { x: object.blcx, y: object.blcy },
+        p2: { x: object.tlcx, y: object.tlcy },
+        x: object.bltlx,
+        y: object.bltly
+    };
+
+    edges.push(edge1,edge2,edge3,edge4);
+    return edges;
+}
+
+function returnEdgeNormalFacingOutward(edge, object){
+    
+    let normal = {
+        x: -edge.y,
+        y: edge.x
+    };
+
+    let lenght = Math.sqrt(Math.pow(normal.x, 2) + Math.pow(normal.y,2));
+
+    normal.x = normal.x/lenght;
+    normal.y = normal.y/lenght;
+    
+    let midpointx = (edge.p1.x + edge.p2.x) / 2;
+    let midpointy = (edge.p1.y + edge.p2.y) / 2;
+
+    let toCenter = {
+        x: object.pivotx - midpointx,
+        y: object.pivoty - midpointy
+    };
+
+    let dot = returnDotProduct(normal.x, normal.y, toCenter);
+    if(dot > 0){
+        normal.x *= -1;
+        normal.y *= -1;
+    }
+
+    return normal;
+}
+
+function returnDotProduct(collisionNormalx, collisionNormaly ,edge){
+    let dot = (edge.x * collisionNormalx) + (edge.y * collisionNormaly);
+    return dot;
+}
+
 function resolveCollision(objectA, objectB){
     getAxes(objectA);
     getAxes(objectB);
 
+    //Calling the detection algorythm, it returns: isColliding, normalx, normaly, penetration
     let collisionData = SAT(objectA,objectB);
+
+    //returns 0 if there is no collsiosn
     if(collisionData == false){
         return 0;
     }
-    else
-    {
-        let slop = 0.1;
 
-        let separationVector = {
-            x: collisionData.normalx * Math.max(collisionData.penetration - slop, 0),
-            y: collisionData.normaly * Math.max(collisionData.penetration - slop, 0)
-        };
-        let totalInverseMass = objectA.invmass + objectB.invmass;
-        let correctionA = {
-            x: separationVector.x * (objectA.invmass/totalInverseMass),
-            y: separationVector.y * (objectA.invmass/totalInverseMass)
-        };
-        let correctionB =  {
-            x: separationVector.x * (objectB.invmass/totalInverseMass),
-            y: separationVector.y * (objectB.invmass/totalInverseMass)
-        };
 
-        objectA.x -= correctionA.x;
-        objectA.y -= correctionA.y;
+    edgesA = returnEdges(objectA);
+    edgesB = returnEdges(objectB);
 
-        objectB.x += correctionB.x;
-        objectB.y += correctionB.y;
-
+    //nnormalising my edges for both obejcts and making 
+    for(let edge of edgesA){
+        let n = returnEdgeNormalFacingOutward(edge, objectA);
+        edge.x = n.x;
+        edge.y = n.y;
     }
+
+    for(let edge of edgesB){
+        let n = returnEdgeNormalFacingOutward(edge, objectB);
+        edge.x = n.x;
+        edge.y = n.y;
+    }
+    
+
+    //Choosing the referenceEdge and incidentEdge for future collssion response
+    let referenceEdge = {
+        p1: {x: 0, y: 0},
+        p2: {x: 0, y: 0},
+        x: 0,
+        y: 0
+    };
+    let refCandidateA = {
+        p1: {x: 0, y: 0},
+        p2: {x: 0, y: 0},
+        x: 0,
+        y: 0
+    };
+    let refCandidateB = {
+        p1: {x: 0, y: 0},
+        p2: {x: 0, y: 0},
+        x: 0,
+        y: 0
+    };
+    let incidentEdge = {
+        p1: {x: 0, y: 0},
+        p2: {x: 0, y: 0},
+        x: 0,
+        y: 0
+    };
+
+    
+
+
+    let dot;
+    let largestDotA;
+    let largestDotB;
+
+    let firstIte = true;
+
+    for(let edge of edgesA){
+        dot = returnDotProduct(collisionData.normalx, collisionData.normaly, edge);
+        if(firstIte){
+            largestDotA = dot;
+            refCandidateA = edge;
+            firstIte = false;
+        }
+        else{
+            if(dot > largestDotA){
+                largestDotA = dot;
+                refCandidateA = edge;
+            }
+        }
+    }
+
+    firstIte = true;
+
+    for(let edge of edgesB){
+        dot = returnDotProduct(-collisionData.normalx, -collisionData.normaly, edge);
+        if(firstIte){
+            largestDotB = dot;
+            refCandidateB = edge;
+            firstIte = false;
+        }
+        else{
+            if(dot > largestDotB){
+                largestDotB = dot;
+                refCandidateB = edge;
+            }
+        }
+    }
+
+    let dot2;
+    let smallestDot2;
+
+    firstIte = true;
+
+    if(largestDotA > largestDotB){
+        referenceEdge = refCandidateA;
+
+
+        for(let edge of edgesB){
+            dot2 = returnDotProduct(edge.x,edge.y,referenceEdge);
+            if(firstIte){
+                firstIte = false;
+                smallestDot2 = dot2;
+                incidentEdge = edge;
+            }
+            else{
+                if(dot2<smallestDot2){
+                    smallestDot2 = dot2;
+                    incidentEdge = edge;
+                }
+            }
+        }
+    }
+
+    else{
+        firstIte = true;
+        referenceEdge = refCandidateB;
+
+
+        for(let edge of edgesA){
+            dot2 = returnDotProduct(edge.x,edge.y,referenceEdge);
+            if(firstIte){
+                firstIte = false;
+                smallestDot2 = dot2;
+                incidentEdge = edge;
+            }
+            else{
+                if(dot2<smallestDot2){
+                    smallestDot2 = dot2;
+                    incidentEdge = edge;
+                }
+            }
+        }       
+    }
+
+    //console.log(incidentEdge);
+    //console.log(referenceEdge);
+    //Left here
+    //.
+    
+    
+
+    
+
+    let slop = 0.1;   
+    let separationVector = {
+        x: collisionData.normalx * Math.max(collisionData.penetration - slop, 0),
+        y: collisionData.normaly * Math.max(collisionData.penetration - slop, 0)
+    };
+    let totalInverseMass = objectA.invmass + objectB.invmass;
+    let correctionA = {
+        x: separationVector.x * (objectA.invmass/totalInverseMass),
+        y: separationVector.y * (objectA.invmass/totalInverseMass)
+    };
+    let correctionB =  {
+        x: separationVector.x * (objectB.invmass/totalInverseMass),
+        y: separationVector.y * (objectB.invmass/totalInverseMass)
+    }
+    
+    //This part is a placeholder, working on a phiscis based collsion rresponse rn
+    objectA.x -= correctionA.x;
+    objectA.y -= correctionA.y   
+    objectB.x += correctionB.x;
+    objectB.y += correctionB.y;
+
+
+    
    
 }
 
