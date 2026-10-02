@@ -834,10 +834,106 @@ function returnEdgeNormalFacingOutward(edge, object){
     return normal;
 }
 
+function returnNormalisedDirection(edge){
+    let direction = {
+        dx: edge.p2.x - edge.p1.x,
+        dy: edge.p2.y - edge.p1.y
+    };
+
+    let length = Math.sqrt(
+        direction.dx * direction.dx +
+        direction.dy * direction.dy
+    );
+
+    direction.dx /= length;
+    direction.dy /= length;
+
+    return direction;
+}
+
 function returnDotProduct(collisionNormalx, collisionNormaly ,edge){
     let dot = (edge.x * collisionNormalx) + (edge.y * collisionNormaly);
     return dot;
 }
+
+function isPointInPlane(point,plane){
+    let pdx = point.x - plane.point.x;
+    let pdy = point.y - plane.point.y;
+
+    let distance = pdx * plane.normalx + pdy * plane.normaly;
+    if(distance >= 0){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
+function signedDistance(point,plane){
+    let pdx = point.x - plane.point.x;
+    let pdy = point.y - plane.point.y;
+
+    let distance = pdx * plane.normalx + pdy * plane.normaly;
+    return distance;
+}
+
+function resolveClipping(referenceEdge,incidentEdge){
+
+    let points = [];
+    points.push(incidentEdge.p1, incidentEdge.p2);
+
+    let referenceEdgeDir = {
+        dx: referenceEdge.p2.x - referenceEdge.p1.x,
+        dy: referenceEdge.p2.y - referenceEdge.p1.y
+    };
+
+    referenceEdgeDir = returnNormalisedDirection(referenceEdge);
+
+    let plane1 = {
+        point: referenceEdge.p1,
+        normalx: referenceEdgeDir.dx,
+        normaly: referenceEdgeDir.dy
+    }
+    let plane2 = {
+        point: referenceEdge.p2,
+        normalx: -referenceEdgeDir.dx,
+        normaly: -referenceEdgeDir.dy
+    }
+
+    let incidentEdgePoints = {
+        I1Plane1: true,
+        I1Plane2: true,
+        I2Plane1: true,
+        I2Plane2: true
+    };
+
+
+
+    incidentEdgePoints.I1Plane1 = isPointInPlane(points[0],plane1);
+    incidentEdgePoints.I1Plane2 = isPointInPlane(points[0],plane2);
+    incidentEdgePoints.I2Plane1 = isPointInPlane(points[1],plane1);
+    incidentEdgePoints.I2Plane2 = isPointInPlane(points[1],plane2);
+
+    
+
+
+}
+
+function returnIntersection(point1, point2, plane){
+    let d1 = signedDistance(point1, plane);
+    let d2 = signedDistance(point2, plane);
+
+    let t = d1 / (d1 - d2);
+
+    let intersection = {
+        x: point1.x + t*(point2.x - point1.x),
+        y: point1.y + t*(point2.y - point1.y)
+    }
+
+    return intersection;
+}
+
+
 
 function resolveCollision(objectA, objectB){
     getAxes(objectA);
@@ -986,6 +1082,8 @@ function resolveCollision(objectA, objectB){
     //console.log(referenceEdge);
     //Left here
     //.
+    
+    //call the clippig fucntion later
     
     
 
