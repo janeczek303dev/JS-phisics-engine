@@ -204,11 +204,11 @@ document.addEventListener("keyup", function(event) {
 function start() {
     requestAnimationFrame(gameLoop);
     player.invmass = 1/player.mass;
-    box2.invmass = 1/box2.invmass;
+    box2.invmass = 1/box2.mass;
 }
 
 
-function gameLoop(currentTime) {
+function gameLoop(currentTime) { 
 
 
     // Convert milliseconds to seconds
@@ -248,7 +248,7 @@ function fixedUpdate(dt) {
 
     for(let object of phisicsObjects){
         getPivot(object);
-        calculateMomentOfInteria(player);
+        calculateMomentOfInteria(object);
         getRotatedCorners(object);
         getEdges(object);
         getAxes(object);
@@ -262,13 +262,17 @@ function fixedUpdate(dt) {
         calculateVelocity(object,dt);
         friction(object,groundFriction,airResistacce,dt);
 
-        doRotation(object,dt);
-        moveObject(object,dt);
+        
 
         resolveCollision(object,player);
         for(otherObj of phisicsObjects){
-            resolveCollision(object, otherObj);
+            if(otherObj != object){
+                 resolveCollision(object, otherObj);
+            }
+           
         }
+        doRotation(object,dt);
+        moveObject(object,dt);
 
         avoidSmallNums(object);
         checkWall(object);
@@ -307,11 +311,13 @@ function fixedUpdate(dt) {
     //player.rotation += Math.PI * dt;
 
     //checkCollision(player,platform1);
-    
+
+    //resolveCollision(player, box2);
+
     doRotation(player,dt);
     moveObject(player,dt);
 
-    resolveCollision(player, box2);
+    
 
     avoidSmallNums(player);
 
@@ -482,7 +488,7 @@ function issiueMovement(object, movementForce){
 //Rotation phisics %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function calculateMomentOfInteria(object){
-    object.momentI = (1/12) * object.mass * (object.pivotx + object.pivoty);
+    object.momentI = (1 / 12) * object.mass * (object.objectW ** 2 + object.objectH ** 2);
 }
 
 function getPivot(object){
@@ -1154,8 +1160,11 @@ function resolveCollision(objectA, objectB){
     objectB.y += correctionB.y;
 
 
+    let firstIte2 = true;
+
     for(let contactPoint of contactPoints)
     {
+
         let rAx = contactPoint.x - objectA.pivotx;
         let rAy = contactPoint.y - objectA.pivoty;
 
@@ -1187,17 +1196,17 @@ function resolveCollision(objectA, objectB){
         let jx = j * collisionData.normalx;
         let jy = j * collisionData.normaly;
 
-        let torqueA = rAx * jy + rAy * jx;
+        let torqueA = rAx * jy - rAy * jx;
         let torqueB = rBx * jy - rBy * jx;
 
-        objectA.xvel = objectA.xvel + jx * objectA.invmass;
-        objectA.yvel = objectA.yvel + jy * objectA.invmass;
+        objectA.xvel = objectA.xvel - jx * objectA.invmass;
+        objectA.yvel = objectA.yvel - jy * objectA.invmass;
 
-        objectB.xvel = objectB.xvel - jx * objectB.invmass;
-        objectB.yvel = objectB.yvel - jy * objectB.invmass;
+        objectB.xvel = objectB.xvel + jx * objectB.invmass;
+        objectB.yvel = objectB.yvel + jy * objectB.invmass;
 
-        objectA.avel += torqueA * (1/objectA.momentI);
-        objectB.avel -= torqueB * (1/objectB.momentI);
+        objectA.avel -= torqueA * (1/objectA.momentI);
+        objectB.avel += torqueB * (1/objectB.momentI);
       
     }
 
@@ -1217,7 +1226,7 @@ function avoidSmallNums(object){
     if(object.yvel <= 0.1 && object.yvel >= -0.1){
         object.yvel = 0;
     }
-    if(object.avel <= 0.5 && object.xvel >= -0.5){
+    if(object.avel <= 0.5 && object.avel >= -0.5){
         object.avel = 0;
     }
 }
