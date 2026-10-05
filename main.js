@@ -35,6 +35,7 @@ let groundFriction = 3;
 let airResistacce = 2;
 
 let player = {
+    isInteractable: true,
     x: 0,
     y: 0,
     tlcx: 0,
@@ -76,6 +77,61 @@ let player = {
     xvel: 0,
     yvel: 0,
     mass: 1,
+    invmass: 1,
+    isGrounded: true,
+    rotation: 0,
+    aacc: 0,
+    avel: 0,
+    momentI: 15,
+    torque: 0,
+    pivotx: 0,
+    pivoty: 0,
+    restitution: 0.1
+};
+
+let floor_object = {
+    isInteractable: false,
+    x: 0,
+    y: 149,
+    tlcx: 0,
+    tlcy: 0,
+    trcx: 0,
+    trcy: 0,
+    blcx: 0,
+    blcy: 0,
+    brcx: 0,
+    brcy: 0,
+    tltrx: 0,
+    tltry: 0,
+    trbrx: 0,
+    trbry: 0,
+    brblx: 0,
+    brbly: 0,
+    bltlx: 0,
+    bltly: 0,
+    axis1maxProj: 0,
+    axis1minProj: 0,
+    axis2maxProj: 0,
+    axis2minProj: 0,
+    axis3maxProj: 0,
+    axis3minProj: 0,
+    axis4maxProj: 0,
+    axis4minProj: 0,
+    axis1x: 0,
+    axis1y: 0,
+    axis2x: 0,
+    axis2y: 0,
+    axis3x: 0,
+    axis3y: 0,
+    axis4x: 0,
+    axis4y: 0,
+    objectH: 2,
+    objectW: 300,
+    xacc: 0,
+    yacc: 0,
+    xvel: 0,
+    yvel: 0,
+    mass: 0,
     invmass: 1,
     isGrounded: true,
     rotation: 0,
@@ -89,6 +145,7 @@ let player = {
 };
 
 let box2 = {
+    isInteractable: true,
     x: 0,
     y: 0,
     tlcx: 0,
@@ -142,36 +199,10 @@ let box2 = {
     restitution: 0.1
 };
 
-let box1 = {
-    x: 30,
-    y: 20,
-    objectH: 10,
-    objectW: 10,
-    xacc: 0,
-    yacc: 0,
-    xvel: 0,
-    yvel: 0,
-    mass: 1,
-    isGrounded: true,
-    rotation: 0,
-    aacc: 0,
-    avel: 0,
-    momentI: 15,
-    torque: 0,
-    pivotx: 0,
-    pivoty: 0
-}
 
-let platform1 = { 
-    x: 100,
-    y: 100,
-    objectW: 80,
-    objectH: 10,
-    fillStyle: 'green'
-}
 
 let phisicsObjects = [];
-phisicsObjects.push(box2);
+phisicsObjects.push(player, box2,floor_object);
 
 const xadisplay = document.getElementById("xacc");
 const yadisplay = document.getElementById("yacc");
@@ -189,10 +220,10 @@ document.addEventListener("keydown", function(event) {
         jumpReq = true;
     }
     if (event.key === "e"){
-        addImpulse(player, 0);
+        //addImpulse(player, 0);
     }
     if (event.key === "r"){
-        addImpulse(player, 30);
+        //addImpulse(player, 30);
     }
 });
 
@@ -203,8 +234,17 @@ document.addEventListener("keyup", function(event) {
 
 function start() {
     requestAnimationFrame(gameLoop);
-    player.invmass = 1/player.mass;
-    box2.invmass = 1/box2.mass;
+
+    //calculates the invmass
+    for(let object of phisicsObjects){
+        if(object.mass != 0){
+            object.invmass = 1/object.mass;
+        }
+        else{
+            object.invmass = 0;
+        }
+        
+    }
 }
 
 
@@ -244,94 +284,80 @@ function gameLoop(currentTime) {
 
 
 function fixedUpdate(dt) {
-    // Physics goes her
-
+    // Physics goes here
     for(let object of phisicsObjects){
+        //PHASE 1: preparation of all the data slay
+        getPivot(object);
         getPivot(object);
         calculateMomentOfInteria(object);
         getRotatedCorners(object);
         getEdges(object);
         getAxes(object);
-
-
         resetAcceleration(object);
         resetRotationalAcceleration(object);
+    }
+
+
+    for(let object of phisicsObjects){
+        //PHASE 2: apply forces bitch
         gravity(object,gravity_values);
+        friction(object,groundFriction,airResistacce,dt);
+    }
+
+
+    for(let object of phisicsObjects){
+        //Phase 2.5: player movement
+        if(object.isInteractable){
+            issiueMovement(player,moveForce);
+            jump(player,jumpReq);
+        }
+    }
+
+
+    for(let object of phisicsObjects){
+        //phase 3: calculations and stuff
         calculateRotationalAcceleration(object);
         calculateRotationalVelocity(object, dt);
         calculateVelocity(object,dt);
-        friction(object,groundFriction,airResistacce,dt);
-
-        
-
-        resolveCollision(object,player);
-        for(otherObj of phisicsObjects){
-            if(otherObj != object){
-                 resolveCollision(object, otherObj);
-            }
-           
-        }
-        doRotation(object,dt);
-        moveObject(object,dt);
-
-        avoidSmallNums(object);
-        checkWall(object);
-        checkGround(object);
     }
 
 
 
+    //PHASE 4: collisions
+    for (let i = 0; i < phisicsObjects.length; i++) {
 
-    //console.log("aaa")
-   
-    getRotatedCorners(player);
-    getPivot(player);
-    calculateMomentOfInteria(player);
-    getEdges(player);
-    getAxes(player);
-
-    resetAcceleration(player);
-    resetRotationalAcceleration(player);
-
-    gravity(player,gravity_values);
-
-    issiueMovement(player, moveForce);
-
-    jump(player,jumpReq);
-
-    calculateRotationalAcceleration(player);
-    calculateRotationalVelocity(player, dt);
+        for (let j = i + 1; j < phisicsObjects.length; j++) {
+            
+            let A = phisicsObjects[i];
+            let B = phisicsObjects[j];
+             resolveCollision(A, B);
+        }
+    }
     
-    calculateVelocity(player,dt);
-
-
-    friction(player,groundFriction, airResistacce, dt);
-
-    //doRotation(player, 45);
-    //player.rotation += Math.PI * dt;
-
-    //checkCollision(player,platform1);
-
-    //resolveCollision(player, box2);
-
-    doRotation(player,dt);
-    moveObject(player,dt);
-
     
 
-    avoidSmallNums(player);
+    for(let object of phisicsObjects){
+        //Phase 5: Move shit around
+        doRotation(object,dt);
+        moveObject(object,dt);
+    }
 
-    checkGround(player);
-    checkWall(player);
+
+    for(let object of phisicsObjects){
+        //Phase 6: cleanUp
+        checkGround(object);
+        checkWall(object);
+        avoidSmallNums(object);
+    }
     
 }
 
 
 function update(dt) {
-    xadisplay.textContent = "box xacc= " + box1.xacc;
-    yadisplay.textContent = "box xvel= " + box1.xvel;
-    xveldisplay.textContent = "box yacc= " + box1.yacc;
-    yveldisplay.textContent = "box yvel" + box1.yvel;
+    xadisplay.textContent = "box xacc= " + player.xacc;
+    yadisplay.textContent = "box xvel= " + player.xvel;
+    xveldisplay.textContent = "box yacc= " + player.yacc;
+    yveldisplay.textContent = "box yvel" + player.yvel;
 }
 
 //renderss
@@ -339,11 +365,10 @@ function update(dt) {
 function draw() {
     // Drawing goes here
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawGameobject(platform1);
 
-
-    drawPlayer(player);
-    drawPlayer(box2);
+    for(let object of phisicsObjects){
+        drawPlayer(object);
+    }
     debugOrigin();
     debugOriginPlayer(player);
     debugRotatingPoints(player);
@@ -374,8 +399,11 @@ function calculateVelocity(object,dt){
     object.yvel += object.yacc * dt;
 }
 function moveObject(object,dt){
-    object.x += object.xvel * dt;
-    object.y += object.yvel * dt;
+    if(object.mass != 0){
+        object.x += object.xvel * dt;
+        object.y += object.yvel * dt;     
+    }
+
 }
 
 function gravity(object, gvalue){
@@ -383,9 +411,10 @@ function gravity(object, gvalue){
 }
 
 function addForce(object, dirx, diry){
-    //everything has the mass of 1, leaving mass to be implemented later
-    object.xacc += dirx / object.mass;
-    object.yacc += diry / object.mass;
+    if(object.mass != 0){
+        object.xacc += dirx / object.mass;
+        object.yacc += diry / object.mass;
+    }
 }
 
 function addForceSimulated(object, dirx, diry, posx, posy){
@@ -427,37 +456,44 @@ function jump(object, request){
 
 
 function checkGround(object){
-    if (object.y  >= floor) {
+    if(object.mass != 0){
+        if (object.y  >= floor) {
 
-        object.isGrounded = true;
+            object.isGrounded = true;
 
-        object.y = floor;
+            object.y = floor;
 
-        if (object.yvel > 0) 
-        {
-            object.yvel = 0;
+            if (object.yvel > 0) 
+            {
+                object.yvel = 0;
+            }
         }
-    }
-    else{
-        object.isGrounded = false;
+        else{
+            object.isGrounded = false;
+        }
     }
 }
 
 function checkWall(object){
-    if(object.x >= wallB){
-        object.x = wallB;
+    if(object.mass != 0){
 
-        if(object.xvel > 0){
-            object.xvel = 0;
+        if(object.x >= wallB){
+            object.x = wallB;
+
+            if(object.xvel > 0){
+                object.xvel = 0;
+            }
+        }
+        
+        if(object.x <= wallA){
+            object.x = wallA;
+
+            if(object.xvel > 0){
+                object.xvel = 0;
+            }
         }
     }
-    if(object.x <= wallA){
-        object.x = wallA;
 
-        if(object.xvel > 0){
-            object.xvel = 0;
-        }
-    }
 }
 
 
@@ -504,7 +540,9 @@ function addTorque(object, forcex, forcey, fposX, fposY){
 }
 
 function calculateRotationalAcceleration(object){
-    object.aacc += object.torque / object.momentI;
+    if(object.momentI != 0){
+        object.aacc += object.torque / object.momentI;
+    }
 }
 
 function calculateRotationalVelocity(object, dt){
@@ -518,7 +556,9 @@ function resetRotationalAcceleration(object){
 
 
 function doRotation(object, dt){
-    object.rotation += object.avel * dt;
+    if(object.mass != 0){
+        object.rotation += object.avel * dt;
+    }
 }
 
 //Collisions (sat algorythm)
@@ -1136,6 +1176,9 @@ function resolveCollision(objectA, objectB){
 
     let contactPoints = resolveClipping(referenceEdge, incidentEdge);
     let totalInverseMass = objectA.invmass + objectB.invmass;
+    if(totalInverseMass === 0){
+        return;
+    }
 
 
     let slop = 0.1;   
@@ -1177,7 +1220,10 @@ function resolveCollision(objectA, objectB){
         rAn *= rAn;
         rBn *= rBn;
 
-        let denominator = totalInverseMass + (rAn/objectA.momentI) + (rBn/objectB.momentI);
+        
+        let rotationalMassA = objectA.momentI === 0 ? 0 : rAn / objectA.momentI;
+        let rotationalMassB = objectB.momentI === 0 ? 0 : rBn / objectB.momentI;
+        let denominator = totalInverseMass + rotationalMassA + rotationalMassB;
 
 
         let acv = calculateContactVelocity(objectA, contactPoint);
@@ -1205,12 +1251,14 @@ function resolveCollision(objectA, objectB){
         objectB.xvel = objectB.xvel + jx * objectB.invmass;
         objectB.yvel = objectB.yvel + jy * objectB.invmass;
 
-        objectA.avel -= torqueA * (1/objectA.momentI);
-        objectB.avel += torqueB * (1/objectB.momentI);
+        if(objectA.momentI !== 0){
+            objectA.avel -= torqueA / objectA.momentI;
+        }
+        if(objectB.momentI !== 0){
+            objectB.avel += torqueB / objectB.momentI;
+        }
       
     }
-
-
 
 }
 
