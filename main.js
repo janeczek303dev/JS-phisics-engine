@@ -358,6 +358,11 @@ function update(dt) {
     yadisplay.textContent = "box xvel= " + player.xvel;
     xveldisplay.textContent = "box yacc= " + player.yacc;
     yveldisplay.textContent = "box yvel" + player.yvel;
+    console.log({
+        rotation: player.rotation,
+        avel: player.avel,
+        torque: player.torque
+    });
 }
 
 //renderss
@@ -506,7 +511,7 @@ function friction(object, groundFriction, airResistance, dt){
     else{
         object.xvel -= object.xvel * airResistance * dt;
     }
-    object.avel -= object.avel * groundFriction * dt;
+    //object.avel -= object.avel * groundFriction * dt;
 }
 
 function issiueMovement(object, movementForce){
@@ -1274,7 +1279,7 @@ function avoidSmallNums(object){
     if(object.yvel <= 0.1 && object.yvel >= -0.1){
         object.yvel = 0;
     }
-    if(object.avel <= 0.5 && object.avel >= -0.5){
+    if(object.avel <= 0.01 && object.avel >= -0.01){
         object.avel = 0;
     }
 }
