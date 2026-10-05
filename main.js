@@ -84,7 +84,8 @@ let player = {
     momentI: 15,
     torque: 0,
     pivotx: 0,
-    pivoty: 0
+    pivoty: 0,
+    restitution: 0.1
 };
 
 let box2 = {
@@ -137,7 +138,8 @@ let box2 = {
     momentI: 15,
     torque: 0,
     pivotx: 0,
-    pivoty: 0
+    pivoty: 0,
+    restitution: 0.1
 };
 
 let box1 = {
@@ -246,6 +248,7 @@ function fixedUpdate(dt) {
 
     for(let object of phisicsObjects){
         getPivot(object);
+        calculateMomentOfInteria(player);
         getRotatedCorners(object);
         getEdges(object);
         getAxes(object);
@@ -276,8 +279,10 @@ function fixedUpdate(dt) {
 
 
     //console.log("aaa")
+   
     getRotatedCorners(player);
     getPivot(player);
+    calculateMomentOfInteria(player);
     getEdges(player);
     getAxes(player);
 
@@ -475,6 +480,10 @@ function issiueMovement(object, movementForce){
 }
 
 //Rotation phisics %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function calculateMomentOfInteria(object){
+    object.momentI = (1/12) * object.mass * (object.pivotx + object.pivoty);
+}
 
 function getPivot(object){
     object.pivotx = object.x + object.objectW / 2;
@@ -882,12 +891,7 @@ function resolveClipping(referenceEdge,incidentEdge){
     let points = [];
     points.push(incidentEdge.p1, incidentEdge.p2);
 
-    let referenceEdgeDir = {
-        dx: referenceEdge.p2.x - referenceEdge.p1.x,
-        dy: referenceEdge.p2.y - referenceEdge.p1.y
-    };
-
-    referenceEdgeDir = returnNormalisedDirection(referenceEdge);
+    let referenceEdgeDir = returnNormalisedDirection(referenceEdge);
 
     let plane1 = {
         point: referenceEdge.p1,
@@ -910,12 +914,36 @@ function resolveClipping(referenceEdge,incidentEdge){
 
 
     incidentEdgePoints.I1Plane1 = isPointInPlane(points[0],plane1);
-    incidentEdgePoints.I1Plane2 = isPointInPlane(points[0],plane2);
     incidentEdgePoints.I2Plane1 = isPointInPlane(points[1],plane1);
+
+    if(incidentEdgePoints.I1Plane1 && !incidentEdgePoints.I2Plane1){
+        points[1] = returnIntersection(points[0],points[1],plane1);
+    }
+    if(!incidentEdgePoints.I1Plane1 && incidentEdgePoints.I2Plane1){
+        points[0] = returnIntersection(points[0],points[1],plane1);
+    }
+    if(!incidentEdgePoints.I1Plane1 && !incidentEdgePoints.I2Plane1){
+        points = [];
+    }
+
+    if(points.length === 0){
+        return points;
+    }
+
+    incidentEdgePoints.I1Plane2 = isPointInPlane(points[0],plane2);
     incidentEdgePoints.I2Plane2 = isPointInPlane(points[1],plane2);
 
-    
+    if(incidentEdgePoints.I1Plane2 && !incidentEdgePoints.I2Plane2){
+        points[1] = returnIntersection(points[0],points[1],plane2);
+    }
+    if(!incidentEdgePoints.I1Plane2 && incidentEdgePoints.I2Plane2){
+        points[0] = returnIntersection(points[0],points[1],plane2);
+    }
+    if(!incidentEdgePoints.I1Plane2 && !incidentEdgePoints.I2Plane2){
+        points = [];
+    }
 
+    return points;
 
 }
 
@@ -934,6 +962,29 @@ function returnIntersection(point1, point2, plane){
 }
 
 
+function calculateContactVelocity(object,point){
+
+    
+    var rx = point.x - object.pivotx;
+    var ry = point.y - object.pivoty;
+
+    let contactVel = {
+        vx: object.xvel - object.avel * ry,
+        vy: object.yvel + object.avel * rx
+    }
+
+    return contactVel;
+}
+
+function calculateRelativeVelocityAlongCollisionNormal(objectAvel,objectBvel,normalx,normaly){
+    let relativeVelX = objectBvel.vx - objectAvel.vx;
+    let relativeVelY = objectBvel.vy - objectAvel.vy;
+
+    let relativeVelocity = relativeVelX * normalx + relativeVelY * normaly;
+    return relativeVelocity;
+}
+
+
 
 function resolveCollision(objectA, objectB){
     getAxes(objectA);
@@ -948,8 +999,8 @@ function resolveCollision(objectA, objectB){
     }
 
 
-    edgesA = returnEdges(objectA);
-    edgesB = returnEdges(objectB);
+    let edgesA = returnEdges(objectA);
+    let edgesB = returnEdges(objectB);
 
     //nnormalising my edges for both obejcts and making 
     for(let edge of edgesA){
@@ -973,14 +1024,6 @@ function resolveCollision(objectA, objectB){
         y: 0
     };
     let refCandidateA = {
-        p1: {x: 0, y: 0},
-        p2: {x: 0, y: 0},
-        x: 0,
-        y: 0
-    };
-    let refCandidateB = {
-        p1: {x: 0, y: 0},
-        p2: {x: 0, y: 0},
         x: 0,
         y: 0
     };
@@ -1084,17 +1127,17 @@ function resolveCollision(objectA, objectB){
     //.
     
     //call the clippig fucntion later
-    
-    
 
-    
+    let contactPoints = resolveClipping(referenceEdge, incidentEdge);
+    let totalInverseMass = objectA.invmass + objectB.invmass;
+
 
     let slop = 0.1;   
     let separationVector = {
         x: collisionData.normalx * Math.max(collisionData.penetration - slop, 0),
         y: collisionData.normaly * Math.max(collisionData.penetration - slop, 0)
     };
-    let totalInverseMass = objectA.invmass + objectB.invmass;
+  
     let correctionA = {
         x: separationVector.x * (objectA.invmass/totalInverseMass),
         y: separationVector.y * (objectA.invmass/totalInverseMass)
@@ -1111,14 +1154,56 @@ function resolveCollision(objectA, objectB){
     objectB.y += correctionB.y;
 
 
-    
-   
+    for(let contactPoint of contactPoints)
+    {
+        let rAx = contactPoint.x - objectA.pivotx;
+        let rAy = contactPoint.y - objectA.pivoty;
+
+        let rBx = contactPoint.x - objectB.pivotx;
+        let rBy = contactPoint.y - objectB.pivoty;
+        
+        let rAn = rAx * collisionData.normaly - rAy * collisionData.normalx;
+        let rBn = rBx * collisionData.normaly - rBy * collisionData.normalx;
+
+        rAn *= rAn;
+        rBn *= rBn;
+
+        let denominator = totalInverseMass + (rAn/objectA.momentI) + (rBn/objectB.momentI);
+
+
+        let acv = calculateContactVelocity(objectA, contactPoint);
+        let bcv = calculateContactVelocity(objectB, contactPoint);
+        let relativeVelocity = calculateRelativeVelocityAlongCollisionNormal(acv,bcv,collisionData.normalx,collisionData.normaly);          
+        
+        if(relativeVelocity > 0){
+            continue;
+        }
+
+        let e = (objectA.restitution + objectB.restitution) / 2;
+        
+
+        let j = (-(1+e) * relativeVelocity) / denominator;
+
+        let jx = j * collisionData.normalx;
+        let jy = j * collisionData.normaly;
+
+        let torqueA = rAx * jy + rAy * jx;
+        let torqueB = rBx * jy - rBy * jx;
+
+        objectA.xvel = objectA.xvel + jx * objectA.invmass;
+        objectA.yvel = objectA.yvel + jy * objectA.invmass;
+
+        objectB.xvel = objectB.xvel - jx * objectB.invmass;
+        objectB.yvel = objectB.yvel - jy * objectB.invmass;
+
+        objectA.avel += torqueA * (1/objectA.momentI);
+        objectB.avel -= torqueB * (1/objectB.momentI);
+      
+    }
+
+
+
 }
-
-
-
-
-
 
 
 
