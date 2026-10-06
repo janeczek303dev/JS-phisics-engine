@@ -89,120 +89,72 @@ let player = {
     restitution: 0.1
 };
 
-let floor_object = {
-    isInteractable: false,
-    x: 0,
-    y: 149,
-    tlcx: 0,
-    tlcy: 0,
-    trcx: 0,
-    trcy: 0,
-    blcx: 0,
-    blcy: 0,
-    brcx: 0,
-    brcy: 0,
-    tltrx: 0,
-    tltry: 0,
-    trbrx: 0,
-    trbry: 0,
-    brblx: 0,
-    brbly: 0,
-    bltlx: 0,
-    bltly: 0,
-    axis1maxProj: 0,
-    axis1minProj: 0,
-    axis2maxProj: 0,
-    axis2minProj: 0,
-    axis3maxProj: 0,
-    axis3minProj: 0,
-    axis4maxProj: 0,
-    axis4minProj: 0,
-    axis1x: 0,
-    axis1y: 0,
-    axis2x: 0,
-    axis2y: 0,
-    axis3x: 0,
-    axis3y: 0,
-    axis4x: 0,
-    axis4y: 0,
-    objectH: 2,
-    objectW: 300,
-    xacc: 0,
-    yacc: 0,
-    xvel: 0,
-    yvel: 0,
-    mass: 0,
-    invmass: 1,
-    isGrounded: true,
-    rotation: 0,
-    aacc: 0,
-    avel: 0,
-    momentI: 15,
-    torque: 0,
-    pivotx: 0,
-    pivoty: 0,
-    restitution: 0.1
-};
 
-let box2 = {
-    isInteractable: true,
-    x: 0,
-    y: 0,
-    tlcx: 0,
-    tlcy: 0,
-    trcx: 0,
-    trcy: 0,
-    blcx: 0,
-    blcy: 0,
-    brcx: 0,
-    brcy: 0,
-    tltrx: 0,
-    tltry: 0,
-    trbrx: 0,
-    trbry: 0,
-    brblx: 0,
-    brbly: 0,
-    bltlx: 0,
-    bltly: 0,
-    axis1maxProj: 0,
-    axis1minProj: 0,
-    axis2maxProj: 0,
-    axis2minProj: 0,
-    axis3maxProj: 0,
-    axis3minProj: 0,
-    axis4maxProj: 0,
-    axis4minProj: 0,
-    axis1x: 0,
-    axis1y: 0,
-    axis2x: 0,
-    axis2y: 0,
-    axis3x: 0,
-    axis3y: 0,
-    axis4x: 0,
-    axis4y: 0,
-    objectH: 25,
-    objectW: 25,
-    xacc: 0,
-    yacc: 0,
-    xvel: 0,
-    yvel: 0,
-    mass: 1,
-    invmass: 1,
-    isGrounded: true,
-    rotation: 0,
-    aacc: 0,
-    avel: 0,
-    momentI: 15,
-    torque: 0,
-    pivotx: 0,
-    pivoty: 0,
-    restitution: 0.1
-};
+class Phiscis_Obj {
+    constructor(x,y,height,width,isInteractable,mass,restitution){
+        this.isInteractable = isInteractable;
+        this.x = x;
+        this.y = y;
+        this.tlcx = 0;
+        this.tlcy = 0;
+        this.trcx = 0;
+        this.trcy = 0;
+        this.blcx = 0;
+        this.blcy = 0;
+        this.brcx = 0;
+        this.brcy = 0;
+        this.tltrx = 0;
+        this.tltry = 0;
+        this.trbrx = 0;
+        this.trbry = 0;
+        this.brblx = 0;
+        this.brbly = 0;
+        this.bltlx = 0;
+        this.bltly = 0;
+        this.axis1maxProj = 0;
+        this.axis1minProj = 0;
+        this.axis2maxProj = 0;
+        this.axis2minProj = 0;
+        this.axis3maxProj = 0;
+        this.axis3minProj = 0;
+        this.axis4maxProj = 0;
+        this.axis4minProj = 0;
+        this.axis1x = 0;
+        this.axis1y = 0;
+        this.axis2x = 0;
+        this.axis2y = 0;
+        this.axis3x = 0;
+        this.axis3y = 0;
+        this.axis4x = 0;
+        this.axis4y = 0;
+        this.objectH = height;
+        this.objectW = width;
+        this.xacc = 0;
+        this.yacc = 0;
+        this.xvel = 0;
+        this.yvel = 0;
+        this.mass = mass;
+        this.invmass = 1;
+        this.isGrounded = true;
+        this.rotation =  0;
+        this.aacc = 0;
+        this.avel = 0;
+        this.momentI = 15;
+        this.torque = 0;
+        this.pivotx = 0;
+        this.pivoty = 0;
+        this.restitution = restitution;
+    }
+}
 
-
+const box_obj = new Phiscis_Obj(40,0,10,10,false,1,0.1);
+const floor_obj = new Phiscis_Obj(0,148,2,300,false,0,0.1);
+const roof_obj = new Phiscis_Obj(0,0,2,300,false,0,0.1);
+const right_wall_obj = new Phiscis_Obj(0,0,200,2,false,0,0.1);
+const left_wall_obj = new Phiscis_Obj(298,0,200,2,false,0,0.1);
 
 let phisicsObjects = [];
-phisicsObjects.push(player, box2,floor_object);
+phisicsObjects.push(player,box_obj,floor_obj,roof_obj,right_wall_obj,left_wall_obj);
 
 const xadisplay = document.getElementById("xacc");
 const yadisplay = document.getElementById("yacc");
@@ -345,7 +297,7 @@ function fixedUpdate(dt) {
 
     for(let object of phisicsObjects){
         //Phase 6: cleanUp
-        checkGround(object);
+        //checkGround(object);
         checkWall(object);
         avoidSmallNums(object);
     }
@@ -377,7 +329,7 @@ function draw() {
     debugOrigin();
     debugOriginPlayer(player);
     debugRotatingPoints(player);
-    debugRotatingPoints(box2);
+
     
     
 }
