@@ -1161,8 +1161,15 @@ function resolveCollision(objectA, objectB){
     objectB.x += correctionB.x;
     objectB.y += correctionB.y;
 
+    getPivot(objectA);
+    getPivot(objectB);
+
 
     let firstIte2 = true;
+
+    for(let contactPoint of contactPoints){
+        contactPoint.normalImpulse = 0;
+    }   
 
     const iterations = 16;
     
@@ -1193,17 +1200,25 @@ function resolveCollision(objectA, objectB){
             let bcv = calculateContactVelocity(objectB, contactPoint);
             let relativeVelocity = calculateRelativeVelocityAlongCollisionNormal(acv,bcv,collisionData.normalx,collisionData.normaly);          
             
-            if(relativeVelocity > 0){
-                continue;
-            }
 
-            let e = (objectA.restitution + objectB.restitution) / 2;
+            let e = 0;
+
+            // if (relativeVelocity < -1) {
+            //     e = (objectA.restitution + objectB.restitution) / 2;
+            // }
             
+            let j = (-(1 + e) * relativeVelocity) / denominator;
 
-            let j = (-(1+e) * relativeVelocity) / denominator;
+            let oldImpulse = contactPoint.normalImpulse ?? 0;
 
-            let jx = j * collisionData.normalx;
-            let jy = j * collisionData.normaly;
+            let newImpulse = Math.max(oldImpulse + j, 0);
+
+            let impulseChange = newImpulse - oldImpulse;
+
+            contactPoint.normalImpulse = newImpulse;
+
+            let jx = impulseChange * collisionData.normalx;
+            let jy = impulseChange * collisionData.normaly;
 
             let torqueA = rAx * jy - rAy * jx;
             let torqueB = rBx * jy - rBy * jx;
