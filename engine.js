@@ -18,14 +18,6 @@ let debugContactPoints = [];
 //gravity
 let gravity_values = 110;
 
-//walls floors etc
-let floor = 125;
-let wallA = 0;
-let wallB = 275;
-
-//player phisics related;
-const playerH = 25;
-const playerW = 25;
 
 const jumpForce = -120;
 const moveForce = 200;
@@ -35,7 +27,9 @@ let jumpReq = false;
 let groundFriction = 3;
 let airResistacce = 2;
 
-class Phiscis_Obj {
+let phisicsObjects = [];
+
+export class Phiscis_Obj {
     constructor(x,y,height,width,isInteractable,mass,restitution){
         this.isInteractable = isInteractable;
         this.x = x;
@@ -89,6 +83,8 @@ class Phiscis_Obj {
         this.pivotx = 0;
         this.pivoty = 0;
         this.restitution = restitution;
+
+        phisicsObjects.push(this);
     }
 }
 
@@ -97,8 +93,8 @@ const roof_obj = new Phiscis_Obj(0,0,2,300,false,0,0.1);
 const right_wall_obj = new Phiscis_Obj(0,0,200,2,false,0,0.1);
 const left_wall_obj = new Phiscis_Obj(298,0,200,2,false,0,0.1);
 
-let phisicsObjects = [];
-phisicsObjects.push(floor_obj,roof_obj,right_wall_obj,left_wall_obj);
+
+
 
 const xadisplay = document.getElementById("xacc");
 const yadisplay = document.getElementById("yacc");
@@ -167,7 +163,7 @@ function gameLoop(currentTime) {
     update(deltaTime);
 
     // Render
-    draw();
+    Rendering_Engine.draw();
 
     requestAnimationFrame(gameLoop);
 }
@@ -247,40 +243,46 @@ function update(dt) {
 
 //renderss
 
-function draw() {
-    // Drawing goes here
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+export class Rendering_Engine {
 
-    for(let object of phisicsObjects){
-        drawPlayer(object);
+    static draw() {
+        // Drawing goes here
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for(let object of phisicsObjects){
+            this.drawPlayer(object);
+        }
+
+        for (let contact of debugContactPoints) {
+            ctx.save();
+            ctx.fillStyle = "red";
+            ctx.beginPath();
+            ctx.arc(contact.x, contact.y, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+        Engine.debugOrigin();    
     }
-    for (let contact of debugContactPoints) {
+
+    
+    static drawPlayer(player){
+
         ctx.save();
-        ctx.fillStyle = "red";
-        ctx.beginPath();
-        ctx.arc(contact.x, contact.y, 5, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillStyle='Black';
+        ctx.translate(player.x + player.objectW/2, player.y+player.objectH/2);
+        ctx.rotate(player.rotation);    
+        ctx.fillRect(0 - player.objectW/2 ,0 - player.objectH/2 ,player.objectW, player.objectH);
         ctx.restore();
     }
-    Engine.debugOrigin();    
+
+    
+    static drawGameobject(object){
+        ctx.fillStyle = object.fillStyle;
+        ctx.fillRect(object.x, object.y, object.objectW, object.objectH);
+    }
 }
 
-function drawPlayer(player){
-
-    ctx.save();
-    ctx.fillStyle='Black';
-    ctx.translate(player.x + player.objectW/2, player.y+player.objectH/2);
-    ctx.rotate(player.rotation);    
-    ctx.fillRect(0 - player.objectW/2 ,0 - player.objectH/2 ,player.objectW, player.objectH);
-    ctx.restore();
-}
-
-function drawGameobject(object){
-    ctx.fillStyle = object.fillStyle;
-    ctx.fillRect(object.x, object.y, object.objectW, object.objectH);
-}
-
-class Engine {
+export class Engine {
     //PHISICS BITCH
 
     static calculateVelocity(object,dt){
@@ -1078,9 +1080,9 @@ class Engine {
 
                 let e = 0;
 
-                // if (relativeVelocity < -1) {
-                //     e = (objectA.restitution + objectB.restitution) / 2;
-                // }
+                if (relativeVelocity < -1) {
+                    e = (objectA.restitution + objectB.restitution) / 2;
+                }
                 
                 let j = (-(1 + e) * relativeVelocity) / denominator;
 
