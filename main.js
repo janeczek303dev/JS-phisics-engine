@@ -330,7 +330,7 @@ function fixedUpdate(dt) {
             
             let A = phisicsObjects[i];
             let B = phisicsObjects[j];
-             resolveCollision(A, B);
+            resolveCollision(A, B);
         }
     }
     
@@ -358,11 +358,6 @@ function update(dt) {
     yadisplay.textContent = "box xvel= " + player.xvel;
     xveldisplay.textContent = "box yacc= " + player.yacc;
     yveldisplay.textContent = "box yvel" + player.yvel;
-    console.log({
-        rotation: player.rotation,
-        avel: player.avel,
-        torque: player.torque
-    });
 }
 
 //renderss
