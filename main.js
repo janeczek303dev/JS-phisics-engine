@@ -171,12 +171,6 @@ document.addEventListener("keydown", function(event) {
     if (event.key === "w" && player.isGrounded) {
         jumpReq = true;
     }
-    if (event.key === "e"){
-        //addImpulse(player, 0);
-    }
-    if (event.key === "r"){
-        //addImpulse(player, 30);
-    }
 });
 
 document.addEventListener("keyup", function(event) {
