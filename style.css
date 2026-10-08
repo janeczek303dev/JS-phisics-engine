@@ -1,13 +1,15 @@
+/* I HATE CSS so chat wrote this */
 * {
     box-sizing: border-box;
 }
-/* ts written by chat i hate css with my whole soul a*/
 
-/*aaaaaa*/
 body {
     margin: 0;
     overflow: hidden;
+
     background: #181818;
+    color: white;
+
     font-family: Arial, sans-serif;
 }
 
@@ -16,8 +18,12 @@ body {
     height: 100vh;
 
     display: flex;
+    flex-direction: column;
+
     justify-content: center;
     align-items: center;
+
+    gap: 15px;
 }
 
 canvas {
@@ -25,8 +31,55 @@ canvas {
     height: 700px;
 
     background: white;
-    border: 2px solid black;
+    border: 2px solid #333;
+
+    display: block;
 }
+
+/* Button container is currently the .main itself */
+button {
+    padding: 10px 18px;
+
+    border: 1px solid #444;
+    border-radius: 6px;
+
+    background: #252525;
+    color: #eee;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        transform 0.1s ease;
+}
+
+button:hover {
+    background: #333;
+    border-color: #666;
+}
+
+button:active {
+    background: #202020;
+    transform: translateY(1px);
+}
+
+#spawnCube:hover {
+    border-color: #00ff88;
+}
+
+#spawnPlayer:hover {
+    border-color: #4da6ff;
+}
+
+#clear:hover {
+    border-color: #ff5555;
+}
+
+/* Debug information */
 
 body > p {
     position: absolute;
@@ -37,6 +90,7 @@ body > p {
     margin: 0;
 
     color: #00ff88;
+
     font-family: monospace;
     font-size: 14px;
 }

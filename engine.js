@@ -27,8 +27,9 @@ let jumpReq = false;
 let groundFriction = 3;
 let airResistacce = 2;
 
-let phisicsObjects = [];
 
+
+let phisicsObjects = [];
 export class Phiscis_Obj {
     constructor(x,y,height,width,isInteractable,mass,restitution){
         this.isInteractable = isInteractable;
@@ -101,16 +102,24 @@ const yadisplay = document.getElementById("yacc");
 const xveldisplay = document.getElementById("xvel");
 const yveldisplay = document.getElementById("yvel");
 
+let player;
+for(let object of phisicsObjects){
+    if(object.isInteractable){
+        player = object;
+    }
+}
 
 //EVENTS
 
 const keys = {};
 
 document.addEventListener("keydown", function(event) {
-    // keys[event.key] = true;
-    // if (event.key === "w" && player.isGrounded) {
-    //     jumpReq = true;
-    // }
+    keys[event.key] = true;
+    if(player != null){
+        if (event.key === "w" && player.isGrounded) {
+            jumpReq = true;
+        }
+    }
 });
 
 document.addEventListener("keyup", function(event) {
@@ -119,6 +128,7 @@ document.addEventListener("keyup", function(event) {
 
 
 function start() {
+
     requestAnimationFrame(gameLoop);
 
     //calculates the invmass
@@ -190,13 +200,13 @@ function fixedUpdate(dt) {
     }
 
 
-    // for(let object of phisicsObjects){
-    //     //Phase 2.5: player movement
-    //     if(object.isInteractable){
-    //         Engine.issiueMovement(player,moveForce);
-    //         Engine.jump(player,jumpReq);
-    //     }
-    // }
+    for(let object of phisicsObjects){
+    //Phase 2.5: player movement
+    if(object.isInteractable){
+            Engine.issiueMovement(object,moveForce);
+            Engine.jump(object,jumpReq);
+        }
+    }
 
 
     for(let object of phisicsObjects){
@@ -264,7 +274,9 @@ export class Rendering_Engine {
         Engine.debugOrigin();    
     }
 
-    
+    static clearTheCanvas(){
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }    
     static drawPlayer(player){
 
         ctx.save();
@@ -1009,7 +1021,7 @@ export class Engine {
 
         let contactPoints = this.resolveClipping(referenceEdge, incidentEdge);
 
-        debugContactPoints.push(...contactPoints);
+        //debugContactPoints.push(...contactPoints); //UNCOMMENT TO SEE THE CONTACT POINTS
 
         let totalInverseMass = objectA.invmass + objectB.invmass;
         if(totalInverseMass === 0){
@@ -1048,7 +1060,7 @@ export class Engine {
             contactPoint.normalImpulse = 0;
         }   
 
-        const iterations = 16;
+        const iterations = 32;
         
         for(let i = 0; i < iterations; i++){
             for(let contactPoint of contactPoints)
@@ -1207,6 +1219,6 @@ export class Engine {
 
 
 
-//Collisions (sat algorythm)
+
 
 start();

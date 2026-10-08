@@ -10,15 +10,20 @@ ctx.fillStyle='Black';
 let lastTime = 0;
 let deltaTime = 0;
 let gameTime = 0;
+// Physics timing
+const fixedDeltaTime = 1 / 60;
+let physicsAccumulator = 0;
+let debugContactPoints = [];
 ////gravity
 let gravity_values = 110;
-// const jumpForce = -120;
-// const moveForce = 200;
-// let jumpReq = false;
+const jumpForce = -120;
+const moveForce = 200;
+let jumpReq = false;
 //frictions of all sorts and kinds 
 let groundFriction = 3;
 let airResistacce = 2;
 let phisicsObjects = [];
+let player;
 
 //BOUNDARIES OF THE CANVAS
 const floor_obj = new Phiscis_Obj(0,148,2,300,false,0,0.1);
@@ -28,7 +33,29 @@ const left_wall_obj = new Phiscis_Obj(298,0,200,2,false,0,0.1);
 //////////////////////////////////////////////////////////////////////////////
 
 
-const box = new Phiscis_Obj(20,20,20,20,false,1,0.1);
+const boxButton = document.getElementById("spawnCube");
+const playerButton = document.getElementById("spawnPlayer");
+const resetButton = document.getElementById("clear");
+
+
+
+///EVENTS
+
+boxButton.addEventListener("click", () => {
+    const box = new Phiscis_Obj(50,50,20,20,false,1,0.1);
+    phisicsObjects.push(box);
+});
+
+playerButton.addEventListener("click", () => {
+    const player = new Phiscis_Obj(50,50,20,20,true,1,0.1);
+    phisicsObjects.push(player);
+});
+
+resetButton.addEventListener("click", () => {
+    Engine.phisicsObjects = [];
+    Rendering_Engine.clearTheCanvas();
+});
+
 
 function start() {
     requestAnimationFrame(gameLoop);
@@ -152,3 +179,5 @@ function fixedUpdate(dt) {
 function update(dt) {
 
 }
+
+start();
