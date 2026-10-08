@@ -12,6 +12,7 @@ let gameTime = 0;
 // Physics timing
 const fixedDeltaTime = 1 / 60;
 let physicsAccumulator = 0;
+let debugContactPoints = [];
 
 
 //gravity
@@ -147,7 +148,7 @@ class Phiscis_Obj {
     }
 }
 
-const box_obj = new Phiscis_Obj(40,0,10,10,false,1,0.1);
+const box_obj = new Phiscis_Obj(80,19,2,80,false,1,0.1);
 const floor_obj = new Phiscis_Obj(0,148,2,300,false,0,0.1);
 const roof_obj = new Phiscis_Obj(0,0,2,300,false,0,0.1);
 const right_wall_obj = new Phiscis_Obj(0,0,200,2,false,0,0.1);
@@ -270,6 +271,7 @@ function fixedUpdate(dt) {
 
 
     //PHASE 4: collisions
+    debugContactPoints = [];
     for (let i = 0; i < phisicsObjects.length; i++) {
 
         for (let j = i + 1; j < phisicsObjects.length; j++) {
@@ -315,9 +317,17 @@ function draw() {
     for(let object of phisicsObjects){
         drawPlayer(object);
     }
+    for (let contact of debugContactPoints) {
+        ctx.save();
+        ctx.fillStyle = "red";
+        ctx.beginPath();
+        ctx.arc(contact.x, contact.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
     debugOrigin();
-    debugOriginPlayer(player);
-    debugRotatingPoints(player);
+    //debugOriginPlayer(player);
+    //debugRotatingPoints(player);
 
     
     
@@ -1121,6 +1131,9 @@ function resolveCollision(objectA, objectB){
     //call the clippig fucntion later
 
     let contactPoints = resolveClipping(referenceEdge, incidentEdge);
+
+    debugContactPoints.push(...contactPoints);
+
     let totalInverseMass = objectA.invmass + objectB.invmass;
     if(totalInverseMass === 0){
         return;
@@ -1142,7 +1155,7 @@ function resolveCollision(objectA, objectB){
         y: separationVector.y * (objectB.invmass/totalInverseMass)
     }
     
-    //This part is a placeholder, working on a phiscis based collsion rresponse rn
+
     objectA.x -= correctionA.x;
     objectA.y -= correctionA.y   
     objectB.x += correctionB.x;
@@ -1151,60 +1164,67 @@ function resolveCollision(objectA, objectB){
 
     let firstIte2 = true;
 
-    for(let contactPoint of contactPoints)
-    {
+    const iterations = 16;
+    
+    for(let i = 0; i < iterations; i++){
+        for(let contactPoint of contactPoints)
+        {
 
-        let rAx = contactPoint.x - objectA.pivotx;
-        let rAy = contactPoint.y - objectA.pivoty;
+            let rAx = contactPoint.x - objectA.pivotx;
+            let rAy = contactPoint.y - objectA.pivoty;
 
-        let rBx = contactPoint.x - objectB.pivotx;
-        let rBy = contactPoint.y - objectB.pivoty;
+            let rBx = contactPoint.x - objectB.pivotx;
+            let rBy = contactPoint.y - objectB.pivoty;
+            
+            let rAn = rAx * collisionData.normaly - rAy * collisionData.normalx;
+            let rBn = rBx * collisionData.normaly - rBy * collisionData.normalx;
+            
+
+            rAn *= rAn;
+            rBn *= rBn;
+
+            
+            let rotationalMassA = objectA.momentI === 0 ? 0 : rAn / objectA.momentI;
+            let rotationalMassB = objectB.momentI === 0 ? 0 : rBn / objectB.momentI;
+            let denominator = totalInverseMass + rotationalMassA + rotationalMassB;
+
+
+            let acv = calculateContactVelocity(objectA, contactPoint);
+            let bcv = calculateContactVelocity(objectB, contactPoint);
+            let relativeVelocity = calculateRelativeVelocityAlongCollisionNormal(acv,bcv,collisionData.normalx,collisionData.normaly);          
+            
+            if(relativeVelocity > 0){
+                continue;
+            }
+
+            let e = (objectA.restitution + objectB.restitution) / 2;
+            
+
+            let j = (-(1+e) * relativeVelocity) / denominator;
+
+            let jx = j * collisionData.normalx;
+            let jy = j * collisionData.normaly;
+
+            let torqueA = rAx * jy - rAy * jx;
+            let torqueB = rBx * jy - rBy * jx;
+
+            objectA.xvel = objectA.xvel - jx * objectA.invmass;
+            objectA.yvel = objectA.yvel - jy * objectA.invmass;
+
+            objectB.xvel = objectB.xvel + jx * objectB.invmass;
+            objectB.yvel = objectB.yvel + jy * objectB.invmass;
+
+            if(objectA.momentI !== 0){
+                objectA.avel -= torqueA / objectA.momentI;
+            }
+            if(objectB.momentI !== 0){
+                objectB.avel += torqueB / objectB.momentI;
+            }
         
-        let rAn = rAx * collisionData.normaly - rAy * collisionData.normalx;
-        let rBn = rBx * collisionData.normaly - rBy * collisionData.normalx;
-
-        rAn *= rAn;
-        rBn *= rBn;
-
-        
-        let rotationalMassA = objectA.momentI === 0 ? 0 : rAn / objectA.momentI;
-        let rotationalMassB = objectB.momentI === 0 ? 0 : rBn / objectB.momentI;
-        let denominator = totalInverseMass + rotationalMassA + rotationalMassB;
-
-
-        let acv = calculateContactVelocity(objectA, contactPoint);
-        let bcv = calculateContactVelocity(objectB, contactPoint);
-        let relativeVelocity = calculateRelativeVelocityAlongCollisionNormal(acv,bcv,collisionData.normalx,collisionData.normaly);          
-        
-        if(relativeVelocity > 0){
-            continue;
         }
-
-        let e = (objectA.restitution + objectB.restitution) / 2;
-        
-
-        let j = (-(1+e) * relativeVelocity) / denominator;
-
-        let jx = j * collisionData.normalx;
-        let jy = j * collisionData.normaly;
-
-        let torqueA = rAx * jy - rAy * jx;
-        let torqueB = rBx * jy - rBy * jx;
-
-        objectA.xvel = objectA.xvel - jx * objectA.invmass;
-        objectA.yvel = objectA.yvel - jy * objectA.invmass;
-
-        objectB.xvel = objectB.xvel + jx * objectB.invmass;
-        objectB.yvel = objectB.yvel + jy * objectB.invmass;
-
-        if(objectA.momentI !== 0){
-            objectA.avel -= torqueA / objectA.momentI;
-        }
-        if(objectB.momentI !== 0){
-            objectB.avel += torqueB / objectB.momentI;
-        }
-      
     }
+
+    
 
 }
 
