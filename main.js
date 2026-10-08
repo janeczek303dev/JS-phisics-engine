@@ -945,6 +945,12 @@ function resolveClipping(referenceEdge,incidentEdge){
         points = [];
     }
 
+    points = points.filter(function(p){
+        let separation = (p.x - referenceEdge.p1.x) * referenceEdge.x +
+                         (p.y - referenceEdge.p1.y) * referenceEdge.y;
+        return separation <= 0;
+    });
+
     return points;
 
 }
