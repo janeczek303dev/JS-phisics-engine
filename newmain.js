@@ -23,10 +23,10 @@ let jumpReq = false;
 let groundFriction = 3;
 let airResistacce = 2;
 let phisicsObjects = [];
-let player;
+
 
 //BOUNDARIES OF THE CANVAS
-const floor_obj = new Phiscis_Obj(0,148,2,300,false,0,0.1);
+const floor_obj = new Phiscis_Obj(0,148,20,300,false,0,0.1);
 const roof_obj = new Phiscis_Obj(0,0,2,300,false,0,0.1);
 const right_wall_obj = new Phiscis_Obj(0,0,200,2,false,0,0.1);
 const left_wall_obj = new Phiscis_Obj(298,0,200,2,false,0,0.1);
@@ -52,7 +52,7 @@ playerButton.addEventListener("click", () => {
 });
 
 resetButton.addEventListener("click", () => {
-    Engine.phisicsObjects = [];
+    Engine.removePhisicsObjects(false);
     Rendering_Engine.clearTheCanvas();
 });
 

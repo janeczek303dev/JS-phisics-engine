@@ -297,6 +297,19 @@ export class Rendering_Engine {
 export class Engine {
     //PHISICS BITCH
 
+    static removePhisicsObjects(removeStatic) {
+        if (removeStatic) {
+            phisicsObjects = [];
+            return;
+        }
+    
+        for (let i = phisicsObjects.length - 1; i >= 0; i--) {
+            if (phisicsObjects[i].mass !== 0) {
+                phisicsObjects.splice(i, 1);
+            }
+        }
+    }
+
     static calculateVelocity(object,dt){
         object.xvel += object.xacc * dt;
         object.yvel += object.yacc * dt;
