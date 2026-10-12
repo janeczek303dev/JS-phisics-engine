@@ -887,7 +887,20 @@ export class Engine {
         let firstIte2 = true;
 
         for(let contactPoint of contactPoints){
+            let acv = this.calculateContactVelocity(objectA, contactPoint);
+            let bcv = this.calculateContactVelocity(objectB, contactPoint);
+            let relativeVelocity = this.calculateRelativeVelocityAlongCollisionNormal(
+                acv,
+                bcv,
+                collisionData.normalx,
+                collisionData.normaly
+            );
+            let restitution = (objectA.restitution + objectB.restitution) / 2;
+
             contactPoint.normalImpulse = 0;
+            contactPoint.restitutionVelocity = relativeVelocity < -1
+                ? -restitution * relativeVelocity
+                : 0;
         }   
 
         const iterations = 32;
@@ -920,13 +933,7 @@ export class Engine {
                 let relativeVelocity = this.calculateRelativeVelocityAlongCollisionNormal(acv,bcv,collisionData.normalx,collisionData.normaly);          
                 
 
-                let e = 0;
-
-                if (relativeVelocity < -1) {
-                    e = (objectA.restitution + objectB.restitution) / 2;
-                }
-                
-                let j = (-(1 + e) * relativeVelocity) / denominator;
+                let j = (contactPoint.restitutionVelocity - relativeVelocity) / denominator;
 
                 let oldImpulse = contactPoint.normalImpulse ?? 0;
 

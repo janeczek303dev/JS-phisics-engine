@@ -5,8 +5,6 @@ import { gravity_values, groundFriction, airResistacce, moveForce } from "./sett
 const canvas = document.getElementById("sex");
 const ctx = canvas.getContext("2d");
 ctx.fillStyle='Black';
-
-
 // Frame timing
 let lastTime = 0;
 let deltaTime = 0;
@@ -14,11 +12,8 @@ let gameTime = 0;
 // Physics timing
 const fixedDeltaTime = 1 / 60;
 let physicsAccumulator = 0;
-
-
-
 //BOUNDARIES OF THE CANVAS
-const floor_obj = new Phiscis_Obj(0,148,2,300,false,0,0.1);
+const floor_obj = new Phiscis_Obj(0,148,2,300,false,0,0.5);
 const roof_obj = new Phiscis_Obj(0,0,2,300,false,0,0.1);
 const right_wall_obj = new Phiscis_Obj(0,0,200,2,false,0,0.1);
 const left_wall_obj = new Phiscis_Obj(298,0,200,2,false,0,0.1);
@@ -33,7 +28,7 @@ const resetButton = document.getElementById("clear");
 ///EVENTS
 
 boxButton.addEventListener("click", () => {
-    new Phiscis_Obj(50,50,20,20,false,1,0.1);
+    new Phiscis_Obj(50,50,20,20,false,1,0.5);
 });
 
 playerButton.addEventListener("click", () => {
