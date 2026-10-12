@@ -3,23 +3,11 @@ const ctx = canvas.getContext("2d");
 
 ctx.fillStyle='Black';
 
-
-// Frame timing
-let lastTime = 0;
-let deltaTime = 0;
-let gameTime = 0;
-
-// Physics timing
-const fixedDeltaTime = 1 / 60;
-let physicsAccumulator = 0;
 let debugContactPoints = [];
 
 
 //gravity
 let gravity_values = 110;
-
-
-const jumpForce = -120;
 const moveForce = 200;
 let jumpReq = false;
 
@@ -27,9 +15,12 @@ let jumpReq = false;
 let groundFriction = 3;
 let airResistacce = 2;
 
+export const keys = {};
 
 
-let phisicsObjects = [];
+
+export let phisicsObjects = [];
+let sleeping_phisicsObjects = [];
 export class Phiscis_Obj {
     constructor(x,y,height,width,isInteractable,mass,restitution){
         this.isInteractable = isInteractable;
@@ -89,168 +80,6 @@ export class Phiscis_Obj {
     }
 }
 
-const floor_obj = new Phiscis_Obj(0,148,2,300,false,0,0.1);
-const roof_obj = new Phiscis_Obj(0,0,2,300,false,0,0.1);
-const right_wall_obj = new Phiscis_Obj(0,0,200,2,false,0,0.1);
-const left_wall_obj = new Phiscis_Obj(298,0,200,2,false,0,0.1);
-
-
-
-
-const xadisplay = document.getElementById("xacc");
-const yadisplay = document.getElementById("yacc");
-const xveldisplay = document.getElementById("xvel");
-const yveldisplay = document.getElementById("yvel");
-
-let player;
-for(let object of phisicsObjects){
-    if(object.isInteractable){
-        player = object;
-    }
-}
-
-//EVENTS
-
-const keys = {};
-
-document.addEventListener("keydown", function(event) {
-    keys[event.key] = true;
-    if(player != null){
-        if (event.key === "w" && player.isGrounded) {
-            jumpReq = true;
-        }
-    }
-});
-
-document.addEventListener("keyup", function(event) {
-    keys[event.key] = false;
-});
-
-
-function start() {
-
-    requestAnimationFrame(gameLoop);
-
-    //calculates the invmass
-    for(let object of phisicsObjects){
-        if(object.mass != 0){
-            object.invmass = 1/object.mass;
-        }
-        else{
-            object.invmass = 0;
-        }
-        
-    }
-}
-
-
-function gameLoop(currentTime) { 
-
-
-    // Convert milliseconds to seconds
-    deltaTime = (currentTime - lastTime) / 1000;
-    lastTime = currentTime;
-
-    // Prevent huge time jumps
-    if (deltaTime > 0.1) {
-        deltaTime = 0.1;
-    }
-
-    gameTime += deltaTime;
-
-    // Add frame time to physics accumulator
-    physicsAccumulator += deltaTime;
-
-    // Run physics at a fixed 60 FPS
-    while (physicsAccumulator >= fixedDeltaTime) {
-
-        fixedUpdate(fixedDeltaTime);
-
-        physicsAccumulator -= fixedDeltaTime;
-    }
-
-    // Normal game update
-    update(deltaTime);
-
-    // Render
-    Rendering_Engine.draw();
-
-    requestAnimationFrame(gameLoop);
-}
-
-
-function fixedUpdate(dt) {
-    // Physics goes here
-    for(let object of phisicsObjects){
-        //PHASE 1: preparation of all the data slay
-        Engine.getPivot(object);
-        Engine.calculateMomentOfInteria(object);
-        Engine.getRotatedCorners(object);
-        Engine.getEdges(object);
-        Engine.getAxes(object);
-        Engine.resetAcceleration(object);
-        Engine.resetRotationalAcceleration(object);
-    }
-
-
-    for(let object of phisicsObjects){
-        //PHASE 2: apply forces bitch
-        Engine.gravity(object,gravity_values);
-        Engine.friction(object,groundFriction,airResistacce,dt);
-    }
-
-
-    for(let object of phisicsObjects){
-    //Phase 2.5: player movement
-    if(object.isInteractable){
-            Engine.issiueMovement(object,moveForce);
-            Engine.jump(object,jumpReq);
-        }
-    }
-
-
-    for(let object of phisicsObjects){
-        //phase 3: calculations and stuff
-        Engine.calculateRotationalAcceleration(object);
-        Engine.calculateRotationalVelocity(object, dt);
-        Engine.calculateVelocity(object,dt);
-    }
-
-
-
-    //PHASE 4: collisions
-    debugContactPoints = [];
-    for (let i = 0; i < phisicsObjects.length; i++) {
-
-        for (let j = i + 1; j < phisicsObjects.length; j++) {
-            
-            let A = phisicsObjects[i];
-            let B = phisicsObjects[j];
-            Engine.resolveCollision(A, B);
-        }
-    }
-    
-    
-
-    for(let object of phisicsObjects){
-        //Phase 5: Move shit around
-        Engine.doRotation(object,dt);
-        Engine.moveObject(object,dt);
-    }
-
-
-    for(let object of phisicsObjects){
-        //Phase 6: cleanUp
-        Engine.avoidSmallNums(object);
-    }
-    
-}
-
-
-function update(dt) {
-
-}
-
 //renderss
 
 export class Rendering_Engine {
@@ -271,6 +100,7 @@ export class Rendering_Engine {
             ctx.fill();
             ctx.restore();
         }
+        //Engine.debugSleeping(sleeping_phisicsObjects);
         Engine.debugOrigin();    
     }
 
@@ -323,7 +153,9 @@ export class Engine {
     }
 
     static gravity(object, gvalue){
-        this.addForceSimulated(object, 0, gvalue, object.pivotx, object.pivoty);
+        if(object.mass !== 0){
+            object.yacc += gvalue;
+        }
     }
 
     static addForce(object, dirx, diry){
@@ -362,13 +194,13 @@ export class Engine {
         object.yvel += diry;
     }
 
-    static jump(object, request){
-        if(request == true && object.isGrounded){
-            //resetAcceleration(object);
-            this.addVelocity(object, 0, jumpForce);
-            jumpReq = false;
-        }
-    }
+    // static jump(object, request){
+    //     if(request == true && object.isGrounded){
+    //         //resetAcceleration(object);
+    //         this.addVelocity(object, 0, jumpForce);
+    //         jumpReq = false;
+    //     }
+    // }
 
 
     static friction(object, groundFriction, airResistance, dt){
@@ -890,6 +722,12 @@ export class Engine {
         return relativeVelocity;
     }
 
+    static putToSleep(object){
+        if(object.xvel < 0.1 && object.xvel > -0.1 && object.yvel < 0.1 && object.yvel > -0.1){
+            sleeping_phisicsObjects.push(object);
+        }
+    }
+
 
 
     static resolveCollision(objectA, objectB){
@@ -1180,6 +1018,23 @@ export class Engine {
         ctx.restore();
     }
 
+    static debugSleeping(sleeping){
+        for(let object of sleeping){
+            ctx.save();
+            ctx.strokeStyle = "red";
+            ctx.fillStyle = "red";
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            ctx.moveTo(object.pivotx - 10, object.pivoty);
+            ctx.lineTo(object.pivotx + 10, object.pivoty);
+            ctx.moveTo(object.pivotx, object.pivoty - 10);
+            ctx.lineTo(object.pivotx, object.pivoty + 10);
+            ctx.stroke();
+            ctx.restore();
+        }
+    }
+
     static debugOriginPlayer(player) {
         ctx.save();
 
@@ -1230,8 +1085,3 @@ export class Engine {
 
 
 
-
-
-
-
-start();

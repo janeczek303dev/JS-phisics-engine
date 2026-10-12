@@ -1,8 +1,6 @@
 
 //REQUIRED BY THE ENGINE/////////////////////////////////////////////////////
-import { Engine } from "./engine.js";
-import { Phiscis_Obj } from "./engine.js";
-import { Rendering_Engine } from "./engine.js";
+import { Engine, Phiscis_Obj, Rendering_Engine, phisicsObjects, keys } from "./newengine.js";
 const canvas = document.getElementById("sex");
 const ctx = canvas.getContext("2d");
 ctx.fillStyle='Black';
@@ -22,11 +20,11 @@ let jumpReq = false;
 //frictions of all sorts and kinds 
 let groundFriction = 3;
 let airResistacce = 2;
-let phisicsObjects = [];
+let sleeping_phisicsObjects = [];
 
 
 //BOUNDARIES OF THE CANVAS
-const floor_obj = new Phiscis_Obj(0,148,20,300,false,0,0.1);
+const floor_obj = new Phiscis_Obj(0,148,2,300,false,0,0.1);
 const roof_obj = new Phiscis_Obj(0,0,2,300,false,0,0.1);
 const right_wall_obj = new Phiscis_Obj(0,0,200,2,false,0,0.1);
 const left_wall_obj = new Phiscis_Obj(298,0,200,2,false,0,0.1);
@@ -37,18 +35,18 @@ const boxButton = document.getElementById("spawnCube");
 const playerButton = document.getElementById("spawnPlayer");
 const resetButton = document.getElementById("clear");
 
+const t1 = new Phiscis_Obj(50,20,20,20,false,2,0.1);
+const t2 = new Phiscis_Obj(100,20,20,20,false,4,0.1);
 
 
 ///EVENTS
 
 boxButton.addEventListener("click", () => {
-    const box = new Phiscis_Obj(50,50,20,20,false,1,0.1);
-    phisicsObjects.push(box);
+    new Phiscis_Obj(50,50,20,20,false,1,0.1);
 });
 
 playerButton.addEventListener("click", () => {
-    const player = new Phiscis_Obj(50,50,20,20,true,1,0.1);
-    phisicsObjects.push(player);
+    new Phiscis_Obj(50,50,20,20,true,1,0.1);
 });
 
 resetButton.addEventListener("click", () => {
@@ -56,6 +54,18 @@ resetButton.addEventListener("click", () => {
     Rendering_Engine.clearTheCanvas();
 });
 
+document.addEventListener("keydown", function(event) {
+    keys[event.key] = true;
+    if(player != null){
+        if (event.key === "w" && player.isGrounded) {
+            jumpReq = true;
+        }
+    }
+});
+
+document.addEventListener("keyup", function(event) {
+    keys[event.key] = false;
+});
 
 function start() {
     requestAnimationFrame(gameLoop);
@@ -129,13 +139,12 @@ function fixedUpdate(dt) {
     }
 
 
-    // for(let object of phisicsObjects){
-    //     //Phase 2.5: player movement
-    //     if(object.isInteractable){
-    //         Engine.issiueMovement(player,moveForce);
-    //         Engine.jump(player,jumpReq);
-    //     }
-    // }
+    for(let object of phisicsObjects){
+    //     Phase 2.5: player movement
+        if(object.isInteractable){
+            Engine.issiueMovement(object,moveForce);
+        }
+    }
 
 
     for(let object of phisicsObjects){
