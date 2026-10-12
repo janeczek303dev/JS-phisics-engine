@@ -1,9 +1,12 @@
 
 //REQUIRED BY THE ENGINE/////////////////////////////////////////////////////
 import { Engine, Phiscis_Obj, Rendering_Engine, phisicsObjects, keys } from "./newengine.js";
+import { gravity_values, groundFriction, airResistacce, moveForce } from "./settings.js";
 const canvas = document.getElementById("sex");
 const ctx = canvas.getContext("2d");
 ctx.fillStyle='Black';
+
+
 // Frame timing
 let lastTime = 0;
 let deltaTime = 0;
@@ -11,16 +14,7 @@ let gameTime = 0;
 // Physics timing
 const fixedDeltaTime = 1 / 60;
 let physicsAccumulator = 0;
-let debugContactPoints = [];
-////gravity
-let gravity_values = 110;
-const jumpForce = -120;
-const moveForce = 200;
-let jumpReq = false;
-//frictions of all sorts and kinds 
-let groundFriction = 3;
-let airResistacce = 2;
-let sleeping_phisicsObjects = [];
+
 
 
 //BOUNDARIES OF THE CANVAS
@@ -34,9 +28,6 @@ const left_wall_obj = new Phiscis_Obj(298,0,200,2,false,0,0.1);
 const boxButton = document.getElementById("spawnCube");
 const playerButton = document.getElementById("spawnPlayer");
 const resetButton = document.getElementById("clear");
-
-const t1 = new Phiscis_Obj(50,20,20,20,false,2,0.1);
-const t2 = new Phiscis_Obj(100,20,20,20,false,4,0.1);
 
 
 ///EVENTS
@@ -53,6 +44,13 @@ resetButton.addEventListener("click", () => {
     Engine.removePhisicsObjects(false);
     Rendering_Engine.clearTheCanvas();
 });
+
+let player;
+for(let object of phisicsObjects){
+    if(object.isInteractable){
+        player = object;
+    }
+}
 
 document.addEventListener("keydown", function(event) {
     keys[event.key] = true;
@@ -157,7 +155,6 @@ function fixedUpdate(dt) {
 
 
     //PHASE 4: collisions
-    debugContactPoints = [];
     for (let i = 0; i < phisicsObjects.length; i++) {
 
         for (let j = i + 1; j < phisicsObjects.length; j++) {

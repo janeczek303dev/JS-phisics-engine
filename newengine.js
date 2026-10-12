@@ -79,14 +79,6 @@ export class Rendering_Engine {
             this.drawPlayer(object);
         }
 
-        for (let contact of debugContactPoints) {
-            ctx.save();
-            ctx.fillStyle = "red";
-            ctx.beginPath();
-            ctx.arc(contact.x, contact.y, 5, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
         //Engine.debugSleeping(sleeping_phisicsObjects);
         Engine.debugOrigin();    
     }
