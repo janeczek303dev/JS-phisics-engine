@@ -79,8 +79,19 @@ export class Rendering_Engine {
             this.drawPlayer(object);
         }
 
+        if(Phiscis_Tools.lastExplosion !== null){
+            if(performance.now() < Phiscis_Tools.lastExplosion.expiresAt){
+                const { x, y, radius } = Phiscis_Tools.lastExplosion;
+                Phiscis_Tools.debugExplosion(x, y, radius);
+            }
+            else{
+                Phiscis_Tools.lastExplosion = null;
+            }
+        }
+
         //Engine.debugSleeping(sleeping_phisicsObjects);
-        Engine.debugOrigin();    
+        Engine.debugOrigin();
+   
     }
 
     static clearTheCanvas(){
@@ -100,6 +111,49 @@ export class Rendering_Engine {
     static drawGameobject(object){
         ctx.fillStyle = object.fillStyle;
         ctx.fillRect(object.x, object.y, object.objectW, object.objectH);
+    }
+}
+
+export class Phiscis_Tools {
+    static lastExplosion = null;
+
+    static debugExplosion(x, y, radius){
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([6, 4]);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    static explosion(x,y,power,radius,phisicsObjects){
+        this.lastExplosion = { x, y, radius, expiresAt: performance.now() + 500 };
+
+        for(let object of phisicsObjects){
+
+            if(object.mass != 0){
+                let r = Math.sqrt(Math.pow(object.x - x, 2) + Math.pow(object.y - y, 2));
+
+                if(r > radius){
+                    continue;
+                }
+
+                let d = {
+                    dx: (object.x - x) / r,
+                    dy: (object.y - y) / r
+                }
+            
+                let force = power * (1 - (r/radius));
+            
+                let vx = d.dx * (force/object.mass);
+                let vy = d.dy * (force/object.mass);
+
+                object.xvel += vx;
+                object.yvel += vy;
+            }
+        }
     }
 }
 
@@ -201,8 +255,9 @@ export class Engine {
             this.addForce(object, movementForce, 0);
         }
         if (keys["f"]){
-            this.addForceSimulated(object, 500, -800, object.x + 5, object.y + 7);
+            this.addForceSimulated(object, 2000, -800, object.x + 5, object.y + 1);
         }
+        
     }
 
     //Rotation phisics %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

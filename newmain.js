@@ -1,6 +1,6 @@
 
 //REQUIRED BY THE ENGINE/////////////////////////////////////////////////////
-import { Engine, Phiscis_Obj, Rendering_Engine, phisicsObjects, keys } from "./newengine.js";
+import { Engine, Phiscis_Obj, Rendering_Engine, Phiscis_Tools, phisicsObjects, keys } from "./newengine.js";
 import { gravity_values, groundFriction, airResistacce, moveForce } from "./settings.js";
 const canvas = document.getElementById("sex");
 const ctx = canvas.getContext("2d");
@@ -13,22 +13,19 @@ let gameTime = 0;
 const fixedDeltaTime = 1 / 60;
 let physicsAccumulator = 0;
 //BOUNDARIES OF THE CANVAS
-const floor_obj = new Phiscis_Obj(0,148,2,300,false,0,0.5);
+const floor_obj = new Phiscis_Obj(0,148,2,300,false,0,0.1);
 const roof_obj = new Phiscis_Obj(0,0,2,300,false,0,0.1);
 const right_wall_obj = new Phiscis_Obj(0,0,200,2,false,0,0.1);
 const left_wall_obj = new Phiscis_Obj(298,0,200,2,false,0,0.1);
 //////////////////////////////////////////////////////////////////////////////
-
-
 const boxButton = document.getElementById("spawnCube");
 const playerButton = document.getElementById("spawnPlayer");
 const resetButton = document.getElementById("clear");
 
 
-///EVENTS
 
 boxButton.addEventListener("click", () => {
-    new Phiscis_Obj(50,50,20,20,false,1,0.5);
+    new Phiscis_Obj(50,50,20,20,false,1,0.1);
 });
 
 playerButton.addEventListener("click", () => {
@@ -38,6 +35,17 @@ playerButton.addEventListener("click", () => {
 resetButton.addEventListener("click", () => {
     Engine.removePhisicsObjects(false);
     Rendering_Engine.clearTheCanvas();
+    const t1 = new Phiscis_Obj(120, 100, 40, 10,false, 5, 0.05);
+    const t2 = new Phiscis_Obj(105, 100, 6, 40,false, 5, 0.05);
+    const e1 = new Phiscis_Obj(115, 70, 20, 20,false, 1, 0.05);
+
+    const t3 = new Phiscis_Obj(180, 100, 60, 10,false, 5, 0.05);
+    const t4 = new Phiscis_Obj(165, 100, 6, 40,false, 5, 0.05);
+    const e2 = new Phiscis_Obj(175, 70, 20, 20,false, 1, 0.05);
+
+    const t5 = new Phiscis_Obj(230, 100, 80, 10,false, 5, 0.05);
+    const t6 = new Phiscis_Obj(215, 80, 6, 40,false, 5, 0.05);
+    const e3 = new Phiscis_Obj(225, 60, 20, 20,false, 1, 0.05);
 });
 
 let player;
@@ -178,7 +186,10 @@ function fixedUpdate(dt) {
 
 
 function update(dt) {
-
+    if (keys["e"]){
+        Phiscis_Tools.explosion(180,80, 500,70,phisicsObjects);
+        //ePhiscis_Tools.debugExplosion(120,120,50);
+    }
 }
 
 start();
