@@ -188,7 +188,6 @@ function fixedUpdate(dt) {
 function update(dt) {
     if (keys["e"]){
         Phiscis_Tools.explosion(180,80, 500,70,phisicsObjects);
-        //ePhiscis_Tools.debugExplosion(120,120,50);
     }
 }
 

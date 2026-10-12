@@ -115,7 +115,7 @@ export class Rendering_Engine {
 }
 
 export class Phiscis_Tools {
-    static lastExplosion = null;
+    static lastExplosion = null
 
     static debugExplosion(x, y, radius){
         ctx.save();
@@ -146,6 +146,32 @@ export class Phiscis_Tools {
                 }
             
                 let force = power * (1 - (r/radius));
+            
+                let vx = d.dx * (force/object.mass);
+                let vy = d.dy * (force/object.mass);
+
+                object.xvel += vx;
+                object.yvel += vy;
+            }
+        }
+    }
+    static implosion(x,y,power,radius,phisicsObjects){
+
+        for(let object of phisicsObjects){
+
+            if(object.mass != 0){
+                let r = Math.sqrt(Math.pow(object.x - x, 2) + Math.pow(object.y - y, 2));
+
+                if(r > radius){
+                    continue;
+                }
+
+                let d = {
+                    dx: (object.x - x) / r,
+                    dy: (object.y - y) / r
+                }
+            
+                let force = -power * (1 - (r/radius));
             
                 let vx = d.dx * (force/object.mass);
                 let vy = d.dy * (force/object.mass);
