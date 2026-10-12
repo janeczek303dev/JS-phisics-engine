@@ -1,26 +1,13 @@
 const canvas = document.getElementById("sex");
 const ctx = canvas.getContext("2d");
-
 ctx.fillStyle='Black';
 
-let debugContactPoints = [];
-
-
-//gravity
-let gravity_values = 110;
-const moveForce = 200;
-let jumpReq = false;
-
-//frictions of all sorts and kinds 
-let groundFriction = 3;
-let airResistacce = 2;
 
 export const keys = {};
-
-
-
 export let phisicsObjects = [];
 let sleeping_phisicsObjects = [];
+
+
 export class Phiscis_Obj {
     constructor(x,y,height,width,isInteractable,mass,restitution){
         this.isInteractable = isInteractable;
