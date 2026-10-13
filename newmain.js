@@ -1,7 +1,8 @@
 
 //REQUIRED BY THE ENGINE/////////////////////////////////////////////////////
-import { Engine, Phiscis_Obj, Rendering_Engine, Phiscis_Tools, phisicsObjects, keys } from "./newengine.js";
-import { gravity_values, groundFriction, airResistacce, moveForce } from "./settings.js";
+import { Engine, Phiscis_Obj, Rendering_Engine, Phiscis_Tools, phisicsObjects, keys } from "./engine/newengine.js";
+import { gravity_values, groundFriction, airResistacce, moveForce } from "./engine/settings.js";
+import { mouse } from "./engine/mouseengine.js";
 const canvas = document.getElementById("sex");
 const ctx = canvas.getContext("2d");
 ctx.fillStyle='Black';
@@ -13,11 +14,13 @@ let gameTime = 0;
 const fixedDeltaTime = 1 / 60;
 let physicsAccumulator = 0;
 //BOUNDARIES OF THE CANVAS
-const floor_obj = new Phiscis_Obj(0,498,2,1000,false,0,0.1,"Black");
-const roof_obj = new Phiscis_Obj(0,0,2,1000,false,0,0.1,"Black");
-const left_wall_obj = new Phiscis_Obj(0,0,1000,2,false,0,0.1,"Black");
-const right_wall_obj = new Phiscis_Obj(998,0,1000,2,false,0,0.1,"Black");
+const floor_obj = new Phiscis_Obj(0,498,30,1000,false,0,0.1,"Black");
+const roof_obj = new Phiscis_Obj(0,-28,30,1000,false,0,0.1,"Black");
+const left_wall_obj = new Phiscis_Obj(-28,0,1000,30,false,0,0.1,"Black");
+const right_wall_obj = new Phiscis_Obj(998,0,1000,30,false,0,0.1,"Black");
+
 //////////////////////////////////////////////////////////////////////////////
+
 const boxButton = document.getElementById("spawnCube");
 const playerButton = document.getElementById("spawnPlayer");
 const resetButton = document.getElementById("clear");
@@ -28,6 +31,9 @@ const hInput = document.getElementById("h");
 const massInput = document.getElementById("m");
 const colorInput = document.getElementById("c");
 
+const powInput = document.getElementById("pow");
+const radInput = document.getElementById("rad");
+
 function getSpawnValues(isPlayer = false) {
     const x = Number.parseFloat(xInput.value) || 0;
     const y = Number.parseFloat(yInput.value) || 0;
@@ -35,6 +41,7 @@ function getSpawnValues(isPlayer = false) {
     const height = Number.parseFloat(hInput.value) || 40;
     const mass = Number.parseFloat(massInput.value) || 1;
     const color = colorInput.value || "#ffffff";
+
 
     return {
         x,
@@ -45,6 +52,16 @@ function getSpawnValues(isPlayer = false) {
         mass,
         restitution: 0.1,
         color
+    };
+}
+
+function getExplosionValues() {
+    const power = Number.parseFloat(powInput.value) || 500;
+    const radius = Number.parseFloat(radInput.value) || 70;
+
+    return {
+        power,
+        radius
     };
 }
 
@@ -203,8 +220,14 @@ function fixedUpdate(dt) {
 
 
 function update(dt) {
-    if (keys["e"]){
-        Phiscis_Tools.explosion(180,80, 500,70,phisicsObjects);
+    if (keys["e"]) {
+        const { power, radius } = getExplosionValues();
+        Phiscis_Tools.explosion(mouse.x, mouse.y, power, radius, phisicsObjects);
+    }
+
+    if (keys["r"]) {
+        const { power, radius } = getExplosionValues();
+        Phiscis_Tools.implosion(mouse.x, mouse.y, power, radius, phisicsObjects);
     }
 }
 
