@@ -1,60 +1,92 @@
-/* I HATE CSS so chat wrote this */
-* {
+*, *::before, *::after {
     box-sizing: border-box;
 }
 
 body {
     margin: 0;
-    overflow: hidden;
-
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden; /* Prevents any scrolling */
     background: #181818;
     color: white;
-
     font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 .main {
-    width: 100vw;
-    height: 100vh;
-
     display: flex;
     flex-direction: column;
-
-    justify-content: center;
     align-items: center;
-
-    gap: 15px;
+    gap: 12px;
 }
 
+/* Fixed size canvas */
 canvas {
     width: 1000px;
-    height: 700px;
-
+    height: 500px;
     background: white;
     border: 2px solid #333;
-
     display: block;
 }
 
-/* Button container is currently the .main itself */
-button {
-    padding: 10px 18px;
-
-    border: 1px solid #444;
+/* Single horizontal bar under the canvas */
+.controls-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    background: #202020;
+    padding: 8px 12px;
     border-radius: 6px;
+    border: 1px solid #333;
+}
 
+/* Small input field styling */
+.input-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.input-wrapper label {
+    font-size: 9px;
+    color: #888;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+input[type="text"] {
+    width: 45px; /* Small input width */
+    padding: 4px;
+    background: #121212;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: white;
+    font-size: 12px;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+input[type="text"]:focus {
+    border-color: #00ff88;
+}
+
+/* Buttons */
+button {
+    padding: 6px 12px;
+    border: 1px solid #444;
+    border-radius: 4px;
     background: #252525;
     color: #eee;
-
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
-
     cursor: pointer;
-
-    transition:
-        background 0.15s ease,
-        border-color 0.15s ease,
-        transform 0.1s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
 
 button:hover {
@@ -63,50 +95,25 @@ button:hover {
 }
 
 button:active {
-    background: #202020;
     transform: translateY(1px);
 }
 
-#spawnCube:hover {
-    border-color: #00ff88;
-}
-
-#spawnPlayer:hover {
-    border-color: #4da6ff;
-}
-
-#clear:hover {
-    border-color: #ff5555;
-}
+#spawnCube:hover { border-color: #00ff88; }
+#spawnPlayer:hover { border-color: #4da6ff; }
+#clear:hover { border-color: #ff5555; }
 
 /* Debug information */
-
 body > p {
     position: absolute;
     z-index: 10;
-
     left: 15px;
-
     margin: 0;
-
     color: #00ff88;
-
     font-family: monospace;
     font-size: 14px;
 }
 
-#xacc {
-    top: 15px;
-}
-
-#yacc {
-    top: 35px;
-}
-
-#xvel {
-    top: 55px;
-}
-
-#yvel {
-    top: 75px;
-}
+#xacc { top: 15px; }
+#yacc { top: 35px; }
+#xvel { top: 55px; }
+#yvel { top: 75px; }

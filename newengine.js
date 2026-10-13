@@ -9,7 +9,7 @@ let sleeping_phisicsObjects = [];
 
 
 export class Phiscis_Obj {
-    constructor(x,y,height,width,isInteractable,mass,restitution){
+    constructor(x,y,height,width,isInteractable,mass,restitution,color){
         this.isInteractable = isInteractable;
         this.x = x;
         this.y = y;
@@ -62,6 +62,7 @@ export class Phiscis_Obj {
         this.pivotx = 0;
         this.pivoty = 0;
         this.restitution = restitution;
+        this.color = color;
 
         phisicsObjects.push(this);
     }
@@ -100,7 +101,7 @@ export class Rendering_Engine {
     static drawPlayer(player){
 
         ctx.save();
-        ctx.fillStyle='Black';
+        ctx.fillStyle=player.color;
         ctx.translate(player.x + player.objectW/2, player.y+player.objectH/2);
         ctx.rotate(player.rotation);    
         ctx.fillRect(0 - player.objectW/2 ,0 - player.objectH/2 ,player.objectW, player.objectH);
@@ -179,6 +180,24 @@ export class Phiscis_Tools {
                 object.xvel += vx;
                 object.yvel += vy;
             }
+        }
+    }
+    static checkCollision(objectA, objectB){
+        var a_left = objectA.x;
+        var a_right = objectA.x + objectA.objectW;
+        var a_top = objectA.y;
+        var a_bottom = objectA.y + objectA.objectH;
+
+        var b_left = objectB.x;
+        var b_right = objectB.x + objectB.objectW;
+        var b_top = objectB.y;
+        var b_bottom = objectB.y + objectB.objectH;
+
+        if(a_right < b_left || a_left > b_right || a_bottom < b_top || a_top > b_bottom){
+            return false;
+        }
+        else{
+            return true;
         }
     }
 }

@@ -11,14 +11,23 @@
 
 
     
-    <div class="main">
-        <canvas id="sex">
+<div class="main">
+    <canvas id="sex" width="1000" height="500"></canvas>
     
-        </canvas>
-        <button id="spawnCube">Spawn cube</button>
-        <button id="spawnPlayer">Spawn a Player</button>
+    <div class="controls-bar">
+        <button id="spawnCube">Spawn Cube</button>
+        
+        <div class="input-wrapper"><label>X</label><input type="text" id="x" value="450"></div>
+        <div class="input-wrapper"><label>Y</label><input type="text" id="y" value="200"></div>
+        <div class="input-wrapper"><label>W</label><input type="text" id="w" value="40"></div>
+        <div class="input-wrapper"><label>H</label><input type="text" id="h" value="40"></div>
+        <div class="input-wrapper"><label>Mass</label><input type="text" id="m" value="1"></div>
+        <div class="input-wrapper"><label>Color</label><input type="text" id="c" value="black"></div>
+        
+        <button id="spawnPlayer">Spawn Player</button>
         <button id="clear">Reset</button>
     </div>
+</div>
 
         
     <script type="module" src="newmain.js"></script>

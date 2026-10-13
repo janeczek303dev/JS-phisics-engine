@@ -13,40 +13,57 @@ let gameTime = 0;
 const fixedDeltaTime = 1 / 60;
 let physicsAccumulator = 0;
 //BOUNDARIES OF THE CANVAS
-const floor_obj = new Phiscis_Obj(0,148,2,300,false,0,0.1);
-const roof_obj = new Phiscis_Obj(0,0,2,300,false,0,0.1);
-const right_wall_obj = new Phiscis_Obj(0,0,200,2,false,0,0.1);
-const left_wall_obj = new Phiscis_Obj(298,0,200,2,false,0,0.1);
+const floor_obj = new Phiscis_Obj(0,498,2,1000,false,0,0.1,"Black");
+const roof_obj = new Phiscis_Obj(0,0,2,1000,false,0,0.1,"Black");
+const left_wall_obj = new Phiscis_Obj(0,0,1000,2,false,0,0.1,"Black");
+const right_wall_obj = new Phiscis_Obj(998,0,1000,2,false,0,0.1,"Black");
 //////////////////////////////////////////////////////////////////////////////
 const boxButton = document.getElementById("spawnCube");
 const playerButton = document.getElementById("spawnPlayer");
 const resetButton = document.getElementById("clear");
+const xInput = document.getElementById("x");
+const yInput = document.getElementById("y");
+const wInput = document.getElementById("w");
+const hInput = document.getElementById("h");
+const massInput = document.getElementById("m");
+const colorInput = document.getElementById("c");
 
+function getSpawnValues(isPlayer = false) {
+    const x = Number.parseFloat(xInput.value) || 0;
+    const y = Number.parseFloat(yInput.value) || 0;
+    const width = Number.parseFloat(wInput.value) || 40;
+    const height = Number.parseFloat(hInput.value) || 40;
+    const mass = Number.parseFloat(massInput.value) || 1;
+    const color = colorInput.value || "#ffffff";
 
+    return {
+        x,
+        y,
+        height,
+        width,
+        isInteractable: isPlayer,
+        mass,
+        restitution: 0.1,
+        color
+    };
+}
 
 boxButton.addEventListener("click", () => {
-    new Phiscis_Obj(50,50,20,20,false,1,0.1);
+    const { x, y, height, width, mass, restitution, color } = getSpawnValues(false);
+    new Phiscis_Obj(x, y, height, width, false, mass, restitution, color);
 });
 
 playerButton.addEventListener("click", () => {
-    new Phiscis_Obj(50,50,20,20,true,1,0.1);
+    const { x, y, height, width, mass, restitution, color } = getSpawnValues(true);
+    new Phiscis_Obj(x, y, height, width, true, mass, restitution, color);
 });
 
 resetButton.addEventListener("click", () => {
     Engine.removePhisicsObjects(false);
     Rendering_Engine.clearTheCanvas();
-    const t1 = new Phiscis_Obj(120, 100, 40, 10,false, 5, 0.05);
-    const t2 = new Phiscis_Obj(105, 100, 6, 40,false, 5, 0.05);
-    const e1 = new Phiscis_Obj(115, 70, 20, 20,false, 1, 0.05);
-
-    const t3 = new Phiscis_Obj(180, 100, 60, 10,false, 5, 0.05);
-    const t4 = new Phiscis_Obj(165, 100, 6, 40,false, 5, 0.05);
-    const e2 = new Phiscis_Obj(175, 70, 20, 20,false, 1, 0.05);
-
-    const t5 = new Phiscis_Obj(230, 100, 80, 10,false, 5, 0.05);
-    const t6 = new Phiscis_Obj(215, 80, 6, 40,false, 5, 0.05);
-    const e3 = new Phiscis_Obj(225, 60, 20, 20,false, 1, 0.05);
 });
+
+
 
 let player;
 for(let object of phisicsObjects){
