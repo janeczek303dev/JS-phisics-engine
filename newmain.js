@@ -1,6 +1,6 @@
 
 //REQUIRED BY THE ENGINE/////////////////////////////////////////////////////
-import { Engine, Phiscis_Obj, Rendering_Engine, Phiscis_Tools, phisicsObjects, keys } from "./engine/newengine.js";
+import { Engine, Phiscis_Obj, Rendering_Engine, Phiscis_Tools, phisicsObjects, keys,GlobalContactPoints, ContactPoint } from "./engine/newengine.js";
 import { gravity_values, groundFriction, airResistacce, moveForce } from "./engine/settings.js";
 import { mouse } from "./engine/mouseengine.js";
 const canvas = document.getElementById("sex");
@@ -14,10 +14,10 @@ let gameTime = 0;
 const fixedDeltaTime = 1 / 60;
 let physicsAccumulator = 0;
 //BOUNDARIES OF THE CANVAS
-const floor_obj = new Phiscis_Obj(0,498,30,1000,false,0,0.1,"Black");
-const roof_obj = new Phiscis_Obj(0,-28,30,1000,false,0,0.1,"Black");
-const left_wall_obj = new Phiscis_Obj(-28,0,1000,30,false,0,0.1,"Black");
-const right_wall_obj = new Phiscis_Obj(998,0,1000,30,false,0,0.1,"Black");
+const floor_obj = new Phiscis_Obj("floor",0,498,30,1000,false,0,0.1,"Black");
+const roof_obj = new Phiscis_Obj("roof",0,-28,30,1000,false,0,0.1,"Black");
+const left_wall_obj = new Phiscis_Obj("left_wall",-28,0,1000,30,false,0,0.1,"Black");
+const right_wall_obj = new Phiscis_Obj("right_wall",998,0,1000,30,false,0,0.1,"Black");
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -67,12 +67,12 @@ function getExplosionValues() {
 
 boxButton.addEventListener("click", () => {
     const { x, y, height, width, mass, restitution, color } = getSpawnValues(false);
-    new Phiscis_Obj(x, y, height, width, false, mass, restitution, color);
+    new Phiscis_Obj("cube", x, y, height, width, false, mass, 0, color);
 });
 
 playerButton.addEventListener("click", () => {
     const { x, y, height, width, mass, restitution, color } = getSpawnValues(true);
-    new Phiscis_Obj(x, y, height, width, true, mass, restitution, color);
+    new Phiscis_Obj("player", x, y, height, width, true, mass, restitution, color);
 });
 
 resetButton.addEventListener("click", () => {
@@ -187,6 +187,7 @@ function fixedUpdate(dt) {
         Engine.calculateRotationalAcceleration(object);
         Engine.calculateRotationalVelocity(object, dt);
         Engine.calculateVelocity(object,dt);
+        //object.avel = 0;
     }
 
 
@@ -198,19 +199,24 @@ function fixedUpdate(dt) {
             
             let A = phisicsObjects[i];
             let B = phisicsObjects[j];
-            Engine.resolveCollision(A, B);
+            Engine.resolveCollisionForPoints(A, B,dt);
+            
         }
     }
+
+
+    Engine.collisionResponse(GlobalContactPoints);
     
     
+
 
     for(let object of phisicsObjects){
         //Phase 5: Move shit around
         Engine.doRotation(object,dt);
         Engine.moveObject(object,dt);
     }
-
-
+    
+    Engine.clearGlobalPoints();
     for(let object of phisicsObjects){
         //Phase 6: cleanUp
         Engine.avoidSmallNums(object);
