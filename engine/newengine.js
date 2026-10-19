@@ -75,30 +75,15 @@ export class Phiscis_Obj {
 export let GlobalContactPoints = [];
 
 export class ContactPoint { 
-    constructor(objectA, objectB,jx,jy,tqa,tqb,data){
+    constructor(objectA, objectB, point, collisionData, restitutionVelocity){
         this.objectA = objectA;
         this.objectB = objectB;
-        this.jx = jx;
-        this.jy = jy;
-        this.torqueA = tqa;
-        this.torqueB = tqb;
-        this.collisionData = data;
-
+        this.x = point.x;
+        this.y = point.y;
+        this.collisionData = collisionData;
+        this.restitutionVelocity = restitutionVelocity;
+        this.normalImpulse = 0;
         GlobalContactPoints.push(this);
-    }
-    doCollision() {
-        const objectA = this.objectA;
-        const objectB = this.objectB;
-        objectA.xvel = objectA.xvel - this.jx * objectA.invmass;
-        objectA.yvel = objectA.yvel - this.jy * objectA.invmass;
-        objectB.xvel = objectB.xvel + this.jx * objectB.invmass;
-        objectB.yvel = objectB.yvel + this.jy * objectB.invmass;
-        if(objectA.momentI !== 0){
-            objectA.avel -= this.torqueA / objectA.momentI;
-        }
-        if(objectB.momentI !== 0){
-            objectB.avel += this.torqueB / objectB.momentI;
-        }   
     }
 }
 
@@ -868,19 +853,21 @@ export class Engine {
             return;
         }
 
-        let slop = 0.1;   
+        let slop = 0.02;   
         let separationVector = {
-            x: collisionData.normalx * Math.max(collisionData.penetration - slop, 0),
-            y: collisionData.normaly * Math.max(collisionData.penetration - slop, 0)
+            x:  collisionData.normalx * Math.max(collisionData.penetration - slop, 0),
+            y:  collisionData.normaly * Math.max(collisionData.penetration - slop, 0)
         };
-    
+        
+        const b = 0.8;
+
         let correctionA = {
-            x: separationVector.x * (objectA.invmass/totalInverseMass),
-            y: separationVector.y * (objectA.invmass/totalInverseMass)
+            x: b * separationVector.x * (objectA.invmass/totalInverseMass),
+            y: b * separationVector.y * (objectA.invmass/totalInverseMass)
         };
         let correctionB =  {
-            x: separationVector.x * (objectB.invmass/totalInverseMass),
-            y: separationVector.y * (objectB.invmass/totalInverseMass)
+            x: b * separationVector.x * (objectB.invmass/totalInverseMass),
+            y: b * separationVector.y * (objectB.invmass/totalInverseMass)
         }
         
 
@@ -1038,11 +1025,6 @@ export class Engine {
         let contactPoints = this.resolveClipping(referenceEdge, incidentEdge);
 
 
-        let totalInverseMass = objectA.invmass + objectB.invmass;
-        if(totalInverseMass === 0){
-            return;
-        }
-
         this.getPivot(objectA);
         this.getPivot(objectB);
 
@@ -1057,69 +1039,77 @@ export class Engine {
                 collisionData.normaly
             );
             let restitution = (objectA.restitution + objectB.restitution) / 2;
-
-            contactPoint.normalImpulse = 0;
+            let restitutionVelocity;
             if (relativeVelocity < -(6 * gravity_values * dt)) {
-                contactPoint.restitutionVelocity = -restitution * relativeVelocity;
+                restitutionVelocity = -restitution * relativeVelocity;
             } else {
-                contactPoint.restitutionVelocity = 0;
+                restitutionVelocity = 0;
             }
+            new ContactPoint(objectA, objectB, contactPoint, collisionData, restitutionVelocity);
         }   
-
-        const iterations = 1;
-        
-        for(let i = 0; i < iterations; i++){
-            for(let contactPoint of contactPoints)
-            {
-
-                let rAx = contactPoint.x - objectA.pivotx;
-                let rAy = contactPoint.y - objectA.pivoty;
-
-                let rBx = contactPoint.x - objectB.pivotx;
-                let rBy = contactPoint.y - objectB.pivoty;
-                
-                let rAn = rAx * collisionData.normaly - rAy * collisionData.normalx;
-                let rBn = rBx * collisionData.normaly - rBy * collisionData.normalx;
-                
-
-                rAn *= rAn;
-                rBn *= rBn;
-
-                
-                let rotationalMassA = objectA.momentI === 0 ? 0 : rAn / objectA.momentI;
-                let rotationalMassB = objectB.momentI === 0 ? 0 : rBn / objectB.momentI;
-                let denominator = totalInverseMass + rotationalMassA + rotationalMassB;
-
-
-                let acv = this.calculateContactVelocity(objectA, contactPoint);
-                let bcv = this.calculateContactVelocity(objectB, contactPoint);
-                let relativeVelocity = this.calculateRelativeVelocityAlongCollisionNormal(acv,bcv,collisionData.normalx,collisionData.normaly);          
-                
-
-                let j = (contactPoint.restitutionVelocity - relativeVelocity) / denominator;
-
-                let oldImpulse = contactPoint.normalImpulse ?? 0;
-
-                let newImpulse = Math.max(oldImpulse + j, 0);
-
-                let impulseChange = newImpulse - oldImpulse;
-
-                contactPoint.normalImpulse = newImpulse;
-
-                let jx = impulseChange * collisionData.normalx;
-                let jy = impulseChange * collisionData.normaly;
-
-                let torqueA = rAx * jy - rAy * jx;
-                let torqueB = rBx * jy - rBy * jx;
-
-                let finalPoint = new ContactPoint(objectA,objectB,jx,jy,torqueA,torqueB,collisionData);
-            }
-        }
     }
 
     static collisionResponse(GlobalContactPoints){
+        const correctedPairs = new Map();
         for(let point of GlobalContactPoints){
-            point.doCollision();
+            let correctedObjects = correctedPairs.get(point.objectA);
+            if(!correctedObjects){
+                correctedObjects = new Set();
+                correctedPairs.set(point.objectA, correctedObjects);
+            }
+            if(!correctedObjects.has(point.objectB)){
+                this.positionCorrection(point.objectA, point.objectB, point.collisionData);
+                correctedObjects.add(point.objectB);
+                this.getPivot(point.objectA);
+                this.getPivot(point.objectB);
+            }
+        }
+
+        const iterations = 32;
+        for(let i = 0; i < iterations; i++){
+            for(let point of GlobalContactPoints){
+                const objectA = point.objectA;
+                const objectB = point.objectB;
+                const normalx = point.collisionData.normalx;
+                const normaly = point.collisionData.normaly;
+                const rAx = point.x - objectA.pivotx;
+                const rAy = point.y - objectA.pivoty;
+                const rBx = point.x - objectB.pivotx;
+                const rBy = point.y - objectB.pivoty;
+                const rAn = rAx * normaly - rAy * normalx;
+                const rBn = rBx * normaly - rBy * normalx;
+                const totalInverseMass = objectA.invmass + objectB.invmass;
+                const rotationalMassA = objectA.momentI === 0 ? 0 : rAn * rAn / objectA.momentI;
+                const rotationalMassB = objectB.momentI === 0 ? 0 : rBn * rBn / objectB.momentI;
+                const denominator = totalInverseMass + rotationalMassA + rotationalMassB;
+                if(denominator === 0){
+                    continue;
+                }
+
+                const acv = this.calculateContactVelocity(objectA, point);
+                const bcv = this.calculateContactVelocity(objectB, point);
+                const relativeVelocity = this.calculateRelativeVelocityAlongCollisionNormal(acv, bcv, normalx, normaly);
+                const impulse = (point.restitutionVelocity - relativeVelocity) / denominator;
+                const newImpulse = Math.max(point.normalImpulse + impulse, 0);
+                const impulseChange = newImpulse - point.normalImpulse;
+                point.normalImpulse = newImpulse;
+
+                const jx = impulseChange * normalx;
+                const jy = impulseChange * normaly;
+                const torqueA = rAx * jy - rAy * jx;
+                const torqueB = rBx * jy - rBy * jx;
+
+                objectA.xvel -= jx * objectA.invmass;
+                objectA.yvel -= jy * objectA.invmass;
+                objectB.xvel += jx * objectB.invmass;
+                objectB.yvel += jy * objectB.invmass;
+                if(objectA.momentI !== 0){
+                    objectA.avel -= torqueA / objectA.momentI;
+                }
+                if(objectB.momentI !== 0){
+                    objectB.avel += torqueB / objectB.momentI;
+                }
+            }
         }
     }
     static collisionSeparation(objectA, objectB){

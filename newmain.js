@@ -200,15 +200,14 @@ function fixedUpdate(dt) {
             let A = phisicsObjects[i];
             let B = phisicsObjects[j];
             Engine.resolveCollisionForPoints(A, B,dt);
-            Engine.collisionSeparation(A,B);
+            
         }
     }
 
-    const iterations = 32;
-    for(let i = 0; i < iterations; i++){
-        Engine.collisionResponse(GlobalContactPoints);
-        Engine.clearGlobalPoints();
-    }
+
+    Engine.collisionResponse(GlobalContactPoints);
+    
+    
 
 
     for(let object of phisicsObjects){
@@ -216,8 +215,8 @@ function fixedUpdate(dt) {
         Engine.doRotation(object,dt);
         Engine.moveObject(object,dt);
     }
-
-
+    
+    Engine.clearGlobalPoints();
     for(let object of phisicsObjects){
         //Phase 6: cleanUp
         Engine.avoidSmallNums(object);
