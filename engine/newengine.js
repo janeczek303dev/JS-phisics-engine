@@ -2,15 +2,18 @@ const canvas = document.getElementById("sex");
 const ctx = canvas.getContext("2d");
 ctx.fillStyle='Black';
 
-
+import {mouse} from "./mouseengine.js";
+import { gravity_values, groundFriction, airResistacce, moveForce } from "./settings.js";
 export const keys = {};
 export let phisicsObjects = [];
 let sleeping_phisicsObjects = [];
 
 
 
+
 export class Phiscis_Obj {
-    constructor(x,y,height,width,isInteractable,mass,restitution,color){
+    constructor(tag,x,y,height,width,isInteractable,mass,restitution,color){
+        this.tag = tag;
         this.isInteractable = isInteractable;
         this.x = x;
         this.y = y;
@@ -53,7 +56,7 @@ export class Phiscis_Obj {
         this.xvel = 0;
         this.yvel = 0;
         this.mass = mass;
-        this.invmass = 1;
+        this.invmass = mass === 0 ? 0 : 1 / mass;
         this.isGrounded = true;
         this.rotation =  0;
         this.aacc = 0;
@@ -66,6 +69,36 @@ export class Phiscis_Obj {
         this.color = color;
 
         phisicsObjects.push(this);
+    }
+}
+
+export let GlobalContactPoints = [];
+
+export class ContactPoint { 
+    constructor(objectA, objectB,jx,jy,tqa,tqb,data){
+        this.objectA = objectA;
+        this.objectB = objectB;
+        this.jx = jx;
+        this.jy = jy;
+        this.torqueA = tqa;
+        this.torqueB = tqb;
+        this.collisionData = data;
+
+        GlobalContactPoints.push(this);
+    }
+    doCollision() {
+        const objectA = this.objectA;
+        const objectB = this.objectB;
+        objectA.xvel = objectA.xvel - this.jx * objectA.invmass;
+        objectA.yvel = objectA.yvel - this.jy * objectA.invmass;
+        objectB.xvel = objectB.xvel + this.jx * objectB.invmass;
+        objectB.yvel = objectB.yvel + this.jy * objectB.invmass;
+        if(objectA.momentI !== 0){
+            objectA.avel -= this.torqueA / objectA.momentI;
+        }
+        if(objectB.momentI !== 0){
+            objectB.avel += this.torqueB / objectB.momentI;
+        }   
     }
 }
 
@@ -91,6 +124,9 @@ export class Rendering_Engine {
             }
         }
 
+        this.drawDot(mouse.x, mouse.y, 2, "Black");
+        this.drawDot(200,350,5,"brown");
+
         //Engine.debugSleeping(sleeping_phisicsObjects);
         Engine.debugOrigin();
    
@@ -109,7 +145,15 @@ export class Rendering_Engine {
         ctx.restore();
     }
 
-    
+    static drawDot(x, y, radius, color){
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.restore();
+    }
+
     static drawGameobject(object){
         ctx.fillStyle = object.fillStyle;
         ctx.fillRect(object.x, object.y, object.objectW, object.objectH);
@@ -183,6 +227,7 @@ export class Phiscis_Tools {
             }
         }
     }
+
     static checkCollision(objectA, objectB){
         var a_left = objectA.x;
         var a_right = objectA.x + objectA.objectW;
@@ -199,6 +244,13 @@ export class Phiscis_Tools {
         }
         else{
             return true;
+        }
+    }
+
+    static addForceAlongNormalisedVector(object,dirx,diry,power){
+        if(object.mass != 0){
+            object.xacc += dirx * power / object.mass;
+            object.yacc += diry * power/ object.mass;
         }
     }
 }
@@ -283,13 +335,15 @@ export class Engine {
 
 
     static friction(object, groundFriction, airResistance, dt){
+        let frictionAmount;
         if(object.isGrounded){
-            object.xvel -= object.xvel * groundFriction * dt;
-            
+            frictionAmount = groundFriction * dt;
         }
         else{
-            object.xvel -= object.xvel * airResistance * dt;
+            frictionAmount = airResistance * dt;
         }
+        object.xvel -= object.xvel * frictionAmount;
+        object.yvel -= object.yvel * frictionAmount;
         //object.avel -= object.avel * groundFriction * dt;
     }
 
@@ -808,9 +862,40 @@ export class Engine {
         }
     }
 
+    static positionCorrection(objectA,objectB,collisionData){
+        let totalInverseMass = objectA.invmass + objectB.invmass;
+        if(totalInverseMass === 0){
+            return;
+        }
+
+        let slop = 0.1;   
+        let separationVector = {
+            x: collisionData.normalx * Math.max(collisionData.penetration - slop, 0),
+            y: collisionData.normaly * Math.max(collisionData.penetration - slop, 0)
+        };
+    
+        let correctionA = {
+            x: separationVector.x * (objectA.invmass/totalInverseMass),
+            y: separationVector.y * (objectA.invmass/totalInverseMass)
+        };
+        let correctionB =  {
+            x: separationVector.x * (objectB.invmass/totalInverseMass),
+            y: separationVector.y * (objectB.invmass/totalInverseMass)
+        }
+        
+
+        objectA.x -= correctionA.x;
+        objectA.y -= correctionA.y   
+        objectB.x += correctionB.x;
+        objectB.y += correctionB.y;
+    }
+
+    static clearGlobalPoints(){
+        GlobalContactPoints = [];
+    }
 
 
-    static resolveCollision(objectA, objectB){
+    static resolveCollisionForPoints(objectA, objectB,dt){
         this.getAxes(objectA);
         this.getAxes(objectB);
 
@@ -952,40 +1037,15 @@ export class Engine {
 
         let contactPoints = this.resolveClipping(referenceEdge, incidentEdge);
 
-        //debugContactPoints.push(...contactPoints); //UNCOMMENT TO SEE THE CONTACT POINTS
 
         let totalInverseMass = objectA.invmass + objectB.invmass;
         if(totalInverseMass === 0){
             return;
         }
 
-
-        let slop = 0.1;   
-        let separationVector = {
-            x: collisionData.normalx * Math.max(collisionData.penetration - slop, 0),
-            y: collisionData.normaly * Math.max(collisionData.penetration - slop, 0)
-        };
-    
-        let correctionA = {
-            x: separationVector.x * (objectA.invmass/totalInverseMass),
-            y: separationVector.y * (objectA.invmass/totalInverseMass)
-        };
-        let correctionB =  {
-            x: separationVector.x * (objectB.invmass/totalInverseMass),
-            y: separationVector.y * (objectB.invmass/totalInverseMass)
-        }
-        
-
-        objectA.x -= correctionA.x;
-        objectA.y -= correctionA.y   
-        objectB.x += correctionB.x;
-        objectB.y += correctionB.y;
-
         this.getPivot(objectA);
         this.getPivot(objectB);
 
-
-        let firstIte2 = true;
 
         for(let contactPoint of contactPoints){
             let acv = this.calculateContactVelocity(objectA, contactPoint);
@@ -999,12 +1059,14 @@ export class Engine {
             let restitution = (objectA.restitution + objectB.restitution) / 2;
 
             contactPoint.normalImpulse = 0;
-            contactPoint.restitutionVelocity = relativeVelocity < -1
-                ? -restitution * relativeVelocity
-                : 0;
+            if (relativeVelocity < -(6 * gravity_values * dt)) {
+                contactPoint.restitutionVelocity = -restitution * relativeVelocity;
+            } else {
+                contactPoint.restitutionVelocity = 0;
+            }
         }   
 
-        const iterations = 32;
+        const iterations = 1;
         
         for(let i = 0; i < iterations; i++){
             for(let contactPoint of contactPoints)
@@ -1050,28 +1112,27 @@ export class Engine {
                 let torqueA = rAx * jy - rAy * jx;
                 let torqueB = rBx * jy - rBy * jx;
 
-                objectA.xvel = objectA.xvel - jx * objectA.invmass;
-                objectA.yvel = objectA.yvel - jy * objectA.invmass;
-
-                objectB.xvel = objectB.xvel + jx * objectB.invmass;
-                objectB.yvel = objectB.yvel + jy * objectB.invmass;
-
-                if(objectA.momentI !== 0){
-                    objectA.avel -= torqueA / objectA.momentI;
-                }
-                if(objectB.momentI !== 0){
-                    objectB.avel += torqueB / objectB.momentI;
-                }
-            
+                let finalPoint = new ContactPoint(objectA,objectB,jx,jy,torqueA,torqueB,collisionData);
             }
         }
-
-        
-
     }
+
+    static collisionResponse(GlobalContactPoints){
+        for(let point of GlobalContactPoints){
+            point.doCollision();
+        }
+    }
+    static collisionSeparation(objectA, objectB){
+        let collisionData = this.SAT(objectA,objectB);
+        if(collisionData == false){
+            return false;
+        }
+        this.positionCorrection(objectA, objectB, collisionData);
+    }
+
     //fixes and stuff
     static avoidSmallNums(object){
-        if(object.xvel <= 0.9 && object.xvel >= -0.9){
+        if(object.xvel <= 0.1 && object.xvel >= -0.1){
             object.xvel = 0;
         }
         if(object.yvel <= 0.1 && object.yvel >= -0.1){

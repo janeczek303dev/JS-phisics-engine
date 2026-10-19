@@ -1,5 +1,5 @@
 //gravity
-export const gravity_values = 110;
+export const gravity_values = 990;
 
 //friction
 export const groundFriction = 3;
