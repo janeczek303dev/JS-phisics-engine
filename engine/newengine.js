@@ -3,7 +3,7 @@ const ctx = canvas.getContext("2d");
 ctx.fillStyle='Black';
 
 import {mouse} from "./mouseengine.js";
-import { gravity_values, groundFriction, airResistacce, moveForce } from "./settings.js";
+import { gravity_values, frictionCoefficient, groundFriction, airResistacce, moveForce } from "./settings.js";
 export const keys = {};
 export let phisicsObjects = [];
 let sleeping_phisicsObjects = [];
@@ -83,6 +83,7 @@ export class ContactPoint {
         this.collisionData = collisionData;
         this.restitutionVelocity = restitutionVelocity;
         this.normalImpulse = 0;
+        this.fimpulse = 0;
         GlobalContactPoints.push(this);
     }
 }
@@ -833,6 +834,15 @@ export class Engine {
         return contactVel;
     }
 
+    static calculateRelativeVelocity(objectAvel, objectBvel){
+
+        let r = {
+            rx: objectBvel.vx - objectAvel.vx,
+            ry: objectBvel.vy - objectAvel.vy
+        };
+        return r;
+    }
+
     static calculateRelativeVelocityAlongCollisionNormal(objectAvel,objectBvel,normalx,normaly){
         let relativeVelX = objectBvel.vx - objectAvel.vx;
         let relativeVelY = objectBvel.vy - objectAvel.vy;
@@ -1088,27 +1098,67 @@ export class Engine {
 
                 const acv = this.calculateContactVelocity(objectA, point);
                 const bcv = this.calculateContactVelocity(objectB, point);
+
+                const relativeVelocityForFriction = this.calculateRelativeVelocity(acv,bcv);
+
+                
                 const relativeVelocity = this.calculateRelativeVelocityAlongCollisionNormal(acv, bcv, normalx, normaly);
                 const impulse = (point.restitutionVelocity - relativeVelocity) / denominator;
                 const newImpulse = Math.max(point.normalImpulse + impulse, 0);
                 const impulseChange = newImpulse - point.normalImpulse;
                 point.normalImpulse = newImpulse;
 
+                const fImpulse = this.doFriction(
+                    objectA,
+                    objectB,
+                    normalx,
+                    normaly,
+                    relativeVelocityForFriction,
+                    rAx,
+                    rAy,
+                    rBx,
+                    rBy,
+                    totalInverseMass,
+                    point.normalImpulse,
+                    point.fimpulse
+                );
+                const newFimpulse = fImpulse;
+                const fimpulseChange = newFimpulse - point.fimpulse;
+                point.fimpulse = newFimpulse;
+
                 const jx = impulseChange * normalx;
                 const jy = impulseChange * normaly;
                 const torqueA = rAx * jy - rAy * jx;
                 const torqueB = rBx * jy - rBy * jx;
 
+                const tangentx = -normaly;
+                const tangenty = normalx;
+                const jfx = fimpulseChange * tangentx;
+                const jfy = fimpulseChange * tangenty;
+                const ftorqueA = rAx * jfy - rAy * jfx;
+                const ftorqueB = rBx * jfy - rBy * jfx;
+
+
                 objectA.xvel -= jx * objectA.invmass;
                 objectA.yvel -= jy * objectA.invmass;
                 objectB.xvel += jx * objectB.invmass;
                 objectB.yvel += jy * objectB.invmass;
+
+                objectA.xvel -= jfx * objectA.invmass;
+                objectA.yvel -= jfy * objectA.invmass;
+                objectB.xvel += jfx * objectB.invmass;
+                objectB.yvel += jfy * objectB.invmass;
+
                 if(objectA.momentI !== 0){
                     objectA.avel -= torqueA / objectA.momentI;
+                    objectA.avel -= ftorqueA / objectA.momentI;
                 }
                 if(objectB.momentI !== 0){
                     objectB.avel += torqueB / objectB.momentI;
+                    objectB.avel += ftorqueB / objectB.momentI;
                 }
+
+                
             }
         }
     }
@@ -1119,6 +1169,31 @@ export class Engine {
         }
         this.positionCorrection(objectA, objectB, collisionData);
     }
+
+    static doFriction(objectA,objectB,normalx,normaly,rv, rAx, rAy, rBx,rBy, totalInverseMass, normalImpulse, accumulatedImpulse){
+        const fc = frictionCoefficient;
+        const tangentx = -normaly;
+        const tangenty = normalx;
+
+        const tangentVelocity = rv.rx * tangentx + rv.ry * tangenty;
+
+        const crossA = rAx * tangenty - rAy * tangentx;
+        const crossB = rBx * tangenty - rBy * tangentx;
+        const rotationalMassA = objectA.momentI > 0 ? crossA * crossA / objectA.momentI : 0;
+        const rotationalMassB = objectB.momentI > 0 ? crossB * crossB / objectB.momentI : 0;
+        const K = totalInverseMass + rotationalMassA + rotationalMassB;
+
+        if(K === 0){
+            return accumulatedImpulse;
+        }
+
+        const frictionImpulse = -tangentVelocity / K;
+        const maxFriction = fc * normalImpulse;
+        const candidateImpulse = accumulatedImpulse + frictionImpulse;
+
+        return Math.max(-maxFriction, Math.min(maxFriction, candidateImpulse));
+    }
+    
 
     //fixes and stuff
     static avoidSmallNums(object){
@@ -1220,6 +1295,5 @@ export class Engine {
         ctx.restore();
     }
 }
-
 
 
